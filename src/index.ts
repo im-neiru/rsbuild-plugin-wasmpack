@@ -43,15 +43,19 @@ export const pluginWasmPack = (
       throw new Error(`${cratePath} does not exists`);
     }
 
-    api.onBeforeBuild(() => {
+    function initialBuild() {
       console.log(`Building WASM crate at: ${cratePath}`);
 
       buildCrate(wasmPackPath, cratePath, outputPath, options.target);
+    }
 
-      console.log("WASM build completed successfully!");
-    });
+    api.onBeforeBuild(initialBuild);
+
+    api.onBeforeStartProdServer(initialBuild);
 
     api.onBeforeStartDevServer(() => {
+      initialBuild();
+
       const crateSrc = path.join(cratePath, "src");
 
       if (!fs.existsSync(crateSrc)) {
@@ -68,8 +72,6 @@ export const pluginWasmPack = (
         console.log(`Rebuilding WASM crate`);
 
         buildCrate(wasmPackPath, cratePath, outputPath, options.target);
-
-        console.log("WASM build completed successfully!");
       });
     });
 
