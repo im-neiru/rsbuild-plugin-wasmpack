@@ -38,7 +38,7 @@ export default {
 
 ### Configuration Options
 
-- `crate` (string): The path to your Rust crate or project. This is typically the folder containing `Cargo.toml` or the name of the crate if it's published on [crates.io](https://crates.io).
+- `crate` (string): The path to your Rust crate or project. This is typically the folder containing `Cargo.toml`.
 
 - `output` (string): The directory where the generated `.wasm` package will be placed.
 
