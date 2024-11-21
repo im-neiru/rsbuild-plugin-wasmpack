@@ -9,5 +9,8 @@
   },
   "keywords": [],
   "author": "im-neiru",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@rsbuild/core": "^1.1.4"
+  }
 }
