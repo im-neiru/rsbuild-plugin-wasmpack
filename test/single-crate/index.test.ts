@@ -1,6 +1,6 @@
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { expect, test } from "@playwright/test";
+import { test } from "@playwright/test";
 import { createRsbuild } from "@rsbuild/core";
 import { pluginWasmPack } from "../../src/index";
 import { getRandomPort } from "../../helper";
