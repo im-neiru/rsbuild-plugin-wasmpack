@@ -1,6 +1,6 @@
 # `rsbuild-plugin-wasmpack`
 
-**This package is not yet unpublished**
+**This package is not yet published**
 
 `rsbuild-plugin-wasmpack` is a plugin for [rsbuild](https://rsbuild.dev/) that enables you to compile and build Rust crates into WebAssembly (Wasm) using [wasm-pack](https://rustwasm.github.io/wasm-pack/).
 
