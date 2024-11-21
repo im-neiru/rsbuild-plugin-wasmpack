@@ -11,6 +11,7 @@
   "author": "im-neiru",
   "license": "ISC",
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@rsbuild/core": "^1.1.4",
     "@rslib/core": "^0.0.18",
     "playwright": "^1.49.0"
