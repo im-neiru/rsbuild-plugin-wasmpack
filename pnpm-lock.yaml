@@ -21,6 +21,9 @@ importers:
       '@rslib/core':
         specifier: ^0.0.18
         version: 0.0.18(typescript@5.6.3)
+      '@types/node':
+        specifier: ^22.9.1
+        version: 22.9.1
       playwright:
         specifier: ^1.49.0
         version: 1.49.0
@@ -129,6 +132,9 @@ packages:
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
 
+  '@types/node@22.9.1':
+    resolution: {integrity: sha512-p8Yy/8sw1caA8CdRIQBG5tiLHmxtQKObCijiAa9Ez+d4+PRffM4054xbju0msf+cvhJpnFEeNjxmVT/0ipktrg==}
+
   caniuse-lite@1.0.30001680:
     resolution: {integrity: sha512-rPQy70G6AGUMnbwS1z6Xg+RkHYPAi18ihs47GH0jcxIG7wArmPgY3XbS2sRdBbxJljp3thdT8BIqv9ccCypiPA==}
 
@@ -192,6 +198,9 @@ packages:
     resolution: {integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==}
     engines: {node: '>=14.17'}
     hasBin: true
+
+  undici-types@6.19.8:
+    resolution: {integrity: sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw==}
 
 snapshots:
 
@@ -286,6 +295,10 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
+  '@types/node@22.9.1':
+    dependencies:
+      undici-types: 6.19.8
+
   caniuse-lite@1.0.30001680: {}
 
   core-js@3.39.0: {}
@@ -330,3 +343,5 @@ snapshots:
   tslib@2.8.1: {}
 
   typescript@5.6.3: {}
+
+  undici-types@6.19.8: {}
