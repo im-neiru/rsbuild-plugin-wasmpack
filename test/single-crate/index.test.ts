@@ -13,7 +13,9 @@ test("should build wasm", async ({ page }) => {
     rsbuildConfig: {
       plugins: [
         pluginWasmPack({
-          crate: "rust",
+          crate: "test/single-crate/rust",
+          output: "pkg",
+          target: "nodejs",
         }),
       ],
       server: {
