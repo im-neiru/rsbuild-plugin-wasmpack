@@ -7,13 +7,17 @@ settings:
 importers:
 
   .:
+    dependencies:
+      typescript:
+        specifier: ^5.6.3
+        version: 5.6.3
     devDependencies:
       '@rsbuild/core':
         specifier: ^1.1.4
         version: 1.1.4
       '@rslib/core':
         specifier: ^0.0.18
-        version: 0.0.18
+        version: 0.0.18(typescript@5.6.3)
 
 packages:
 
@@ -158,6 +162,11 @@ packages:
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
+  typescript@5.6.3:
+    resolution: {integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
 snapshots:
 
   '@jridgewell/sourcemap-codec@1.5.0': {}
@@ -185,11 +194,13 @@ snapshots:
       '@swc/helpers': 0.5.15
       core-js: 3.39.0
 
-  '@rslib/core@0.0.18':
+  '@rslib/core@0.0.18(typescript@5.6.3)':
     dependencies:
       '@rsbuild/core': 1.1.4
-      rsbuild-plugin-dts: 0.0.18(@rsbuild/core@1.1.4)
+      rsbuild-plugin-dts: 0.0.18(@rsbuild/core@1.1.4)(typescript@5.6.3)
       tinyglobby: 0.2.10
+    optionalDependencies:
+      typescript: 5.6.3
 
   '@rspack/binding-darwin-arm64@1.1.2':
     optional: true
@@ -261,12 +272,14 @@ snapshots:
 
   picomatch@4.0.2: {}
 
-  rsbuild-plugin-dts@0.0.18(@rsbuild/core@1.1.4):
+  rsbuild-plugin-dts@0.0.18(@rsbuild/core@1.1.4)(typescript@5.6.3):
     dependencies:
       '@rsbuild/core': 1.1.4
       magic-string: 0.30.13
       picocolors: 1.1.1
       tinyglobby: 0.2.10
+    optionalDependencies:
+      typescript: 5.6.3
 
   tinyglobby@0.2.10:
     dependencies:
@@ -274,3 +287,5 @@ snapshots:
       picomatch: 4.0.2
 
   tslib@2.8.1: {}
+
+  typescript@5.6.3: {}
