@@ -42,7 +42,4 @@ export default {
 
 - `output` (string): The directory where the generated `.wasm` package will be placed.
 
-- `target` (string): The WebAssembly target. Common options include:
-  - `web`: For use in web browsers.
-  - `nodejs`: For use in a Node.js environment.
-  - More targets are supported by wasm-pack.
+- `target` (string): The WebAssembly target [see all supported target by wasm-pack](https://rustwasm.github.io/wasm-pack/book/commands/build.html#target).
