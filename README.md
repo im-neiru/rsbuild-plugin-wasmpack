@@ -1,5 +1,8 @@
 # `rsbuild-plugin-wasmpack`
 
+![npm](https://img.shields.io/npm/v/rsbuild-plugin-wasmpack?style=flat-square&colorA=DEA584&colorB=5E4CEF)
+![license](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&colorA=DEA584&colorB=5E4CEF)
+
 `rsbuild-plugin-wasmpack` is a plugin for [rsbuild](https://rsbuild.dev/) that enables you to compile and build Rust crates into WebAssembly (Wasm) using [wasm-pack](https://rustwasm.github.io/wasm-pack/).
 
 This plugin simplifies the integration of Rust to WebAssembly in your rsbuild projects, allowing you to easily compile and bundle your Rust code for use in web applications.
@@ -40,4 +43,4 @@ export default defineConfig({
 
 - `output` (string): The directory where the generated `.wasm` package will be placed.
 
-- `target` (string): The WebAssembly target [see all supported target by wasm-pack](https://rustwasm.github.io/wasm-pack/book/commands/build.html#target).
+- `target` (string): The WebAssembly target. [see all supported target by wasm-pack](https://rustwasm.github.io/wasm-pack/book/commands/build.html#target).
