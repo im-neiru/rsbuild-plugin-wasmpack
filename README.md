@@ -1,7 +1,12 @@
 # `rsbuild-plugin-wasmpack`
 
-![npm](https://img.shields.io/npm/v/rsbuild-plugin-wasmpack?style=flat-square&colorA=DEA584&colorB=5E4CEF)
-![license](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&colorA=DEA584&colorB=5E4CEF)
+<a href="https://www.npmjs.com/package/rsbuild-plugin-wasmpack">
+  <img src="https://img.shields.io/npm/v/rsbuild-plugin-wasmpack?style=flat-square&colorA=DEA584&colorB=5E4CEF" alt="npm">
+</a>
+<a href="./LICENSE">
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&colorA=DEA584&colorB=5E4CEF" alt="license">
+</a>
+
 
 `rsbuild-plugin-wasmpack` is a plugin for [rsbuild](https://rsbuild.dev/) that enables you to compile and build Rust crates into WebAssembly (Wasm) using [wasm-pack](https://rustwasm.github.io/wasm-pack/).
 
