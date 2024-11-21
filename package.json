@@ -14,7 +14,7 @@
   "devDependencies": {
     "@playwright/test": "^1.49.0",
     "@rsbuild/core": "^1.1.4",
-    "@rslib/core": "^0.0.18",
+    "@rslib/core": "0.1.0",
     "@types/cross-spawn": "^6.0.6",
     "@types/node": "^22.9.1",
     "cross-spawn": "^7.0.6",
