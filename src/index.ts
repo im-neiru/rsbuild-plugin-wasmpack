@@ -1,7 +1,7 @@
 import type { RsbuildPlugin } from "@rsbuild/core";
 import { sync as runSync } from "cross-spawn";
-import path from "path";
-import fs from "fs";
+import path from "node:path";
+import fs from "node:fs";
 
 /**
  * Options for configuring the `pluginWasmPack`.
@@ -65,7 +65,7 @@ export const pluginWasmPack = (
 		);
 
 		if (!fs.existsSync(wasmPackPath)) {
-			throw new Error(`wasm-pack not found please install it`);
+			throw new Error("wasm-pack not found please install it");
 		}
 
 		if (!fs.existsSync(cratePath)) {
@@ -98,7 +98,7 @@ export const pluginWasmPack = (
 			watcher = fs.watch(crateSrc, { encoding: "buffer" }, (eventType) => {
 				if (eventType !== "change") return;
 
-				console.log(`Rebuilding WASM crate`);
+				console.log("Rebuilding WASM crate");
 
 				buildCrate(wasmPackPath, cratePath, outputPath, options.target);
 			});
