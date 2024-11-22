@@ -1,1 +1,1 @@
-console.log("test wasm")
+console.log("test wasm");
