@@ -25,6 +25,7 @@
   "author": "im-neiru",
   "license": "MIT",
   "devDependencies": {
+    "@biomejs/biome": "1.9.4",
     "@playwright/test": "^1.49.0",
     "@rsbuild/core": "^1.1.4",
     "@rslib/core": "0.1.0",
