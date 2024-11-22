@@ -18,7 +18,10 @@
 	"scripts": {
 		"build": "rslib build",
 		"test": "playwright test",
-		"format": "pnpm biome format --write"
+		"format": "pnpm biome format --write",
+		"lint": "biome lint --error-on-warnings",
+		"fix": "biome lint --write",
+		"fix-unsafe": "biome lint --write --unsafe"
 	},
 	"keywords": [],
 	"author": "im-neiru",
