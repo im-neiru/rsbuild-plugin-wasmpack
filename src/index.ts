@@ -2,36 +2,41 @@ import type { RsbuildPlugin } from "@rsbuild/core";
 import { sync as runSync } from "cross-spawn";
 import path from "node:path";
 import fs from "node:fs";
-
 /**
- * Options for configuring the `pluginWasmPack`.
+ * Configuration options for the `pluginWasmPack`.
  */
 export type PluginWasmPackOptions = {
 	/**
-	 * The path to the Rust crate to be built using `wasm-pack`.
-	 * This should point to the directory containing the `Cargo.toml` file.
+	 * A list of Rust crates to be built using `wasm-pack`.
 	 */
-	crate: string;
+	crates: CrateTarget[];
+};
+
+export type CrateTarget = {
+	/**
+	 * The file path to the Rust crate directory, which must contain the `Cargo.toml` file.
+	 */
+	path: string;
 
 	/**
-	 * The output directory where the compiled WebAssembly
-	 * will be placed after running `wasm-pack`.
+	 * The directory where the compiled WebAssembly package will be output
+	 * after running `wasm-pack`.
 	 */
 	output: string;
 
 	/**
-	 * The target environment for the compiled WebAssembly package.
+	 * Specifies the target environment for the generated WebAssembly package.
 	 *
-	 * - `"nodejs"`: Optimized for Node.js runtime.
-	 * - `"web"`: Optimized for usage in web browsers.
-	 * - `"no-modules"`: Generates a package without ES6 modules.
-	 * - `"deno"`: Generates a package compatible with Deno.
-	 * - `"bundler"`: Generates a package for module bundlers like Webpack or Rollup.
+	 * - `"nodejs"`: For use with the Node.js runtime.
+	 * - `"web"`: For use in web browsers.
+	 * - `"no-modules"`: Outputs a package without ES6 module support.
+	 * - `"deno"`: Outputs a package compatible with the Deno runtime.
+	 * - `"bundler"`: Outputs a package suitable for module bundlers like Webpack or Rollup.
 	 */
 	target: "nodejs" | "web" | "no-modules" | "deno" | "bundler";
 };
 
-let watcher: fs.FSWatcher | null = null;
+let watchers = new Map<string, fs.FSWatcher>();
 
 /**
  * Creates an `RsbuildPlugin` that uses `wasm-pack` to build a Rust crate
@@ -45,20 +50,6 @@ export const pluginWasmPack = (
 ): RsbuildPlugin => ({
 	name: "rsbuild:wasmpack",
 	setup: (api) => {
-		if (!(options?.crate?.length > 0)) {
-			throw new Error("Crate path is missing");
-		}
-
-		if (!(options?.target?.length > 0)) {
-			throw new Error("Target is missing");
-		}
-
-		if (!(options?.crate?.length > 0)) {
-			throw new Error("Output path is missing");
-		}
-
-		const cratePath = path.resolve(options.crate);
-		const outputPath = path.resolve(options.output);
 		const wasmPackPath = path.resolve(
 			process.env.HOME || "",
 			".cargo/bin/wasm-pack",
@@ -68,45 +59,78 @@ export const pluginWasmPack = (
 			throw new Error("wasm-pack not found please install it");
 		}
 
-		if (!fs.existsSync(cratePath)) {
-			throw new Error(`${cratePath} does not exists`);
+		if (!(options?.crates?.length > 0)) {
+			throw new Error("Crates are missing");
+		}
+
+		const crates = new Array<CrateTarget>();
+		const paths = new Set<string>();
+
+		for (const crate of options.crates) {
+			if (!(crate?.path?.length > 0)) {
+				throw new Error("Crate path is missing");
+			}
+
+			if (!(crate?.target?.length > 0)) {
+				throw new Error(`No target directory for ${path.basename(crate.path)}`);
+			}
+
+			if (!(crate?.output?.length > 0)) {
+				throw new Error(`No output directory for ${path.basename(crate.path)}`);
+			}
+
+			if (fs.existsSync(path.resolve(crate.path, "Cargo.toml"))) {
+				throw new Error(`${path.basename(crate.path)} does not exists`);
+			}
+
+			const fullPath = path.resolve(crate.path);
+
+			crates.push({
+				path: fullPath,
+				output: path.resolve(crate.path),
+				target: crate.target,
+			});
+
+			paths.add(fullPath);
 		}
 
 		function initialBuild() {
-			console.log(`Building WASM crate at: ${cratePath}`);
+			for (const crate of options.crates) {
+				console.log(`Building ${path.basename(crate.path)}`);
 
-			buildCrate(wasmPackPath, cratePath, outputPath, options.target);
+				buildCrate(wasmPackPath, crate.path, crate.output, crate.target);
+			}
 		}
 
 		api.onBeforeBuild(initialBuild);
-
 		api.onBeforeStartProdServer(initialBuild);
+		api.onBeforeStartDevServer(initialBuild);
 
-		api.onBeforeStartDevServer(() => {
-			initialBuild();
-
-			const crateSrc = path.join(cratePath, "src");
-
-			if (!fs.existsSync(crateSrc)) {
-				throw new Error(`${crateSrc} does not exists`);
-			}
-
-			if (watcher) {
+		api.onAfterStartDevServer(() => {
+			for (const [_path, watcher] of watchers) {
 				watcher.close();
 			}
 
-			watcher = fs.watch(crateSrc, { encoding: "buffer" }, (eventType) => {
-				if (eventType !== "change") return;
+			watchers = new Map(
+				crates.map((crate) => [
+					crate.path,
+					fs.watch(crate.path, { encoding: "buffer" }, (event) => {
+						if (event !== "change") return;
 
-				console.log("Rebuilding WASM crate");
+						console.log("Rebuilding ", path.basename(crate.path));
 
-				buildCrate(wasmPackPath, cratePath, outputPath, options.target);
-			});
+						buildCrate(wasmPackPath, crate.path, crate.output, crate.target);
+					}),
+				]),
+			);
 		});
 
 		api.onCloseDevServer(() => {
-			watcher?.close();
-			watcher = null;
+			for (const [_path, watcher] of watchers) {
+				watcher.close();
+			}
+
+			watchers.clear();
 		});
 	},
 });
@@ -115,7 +139,7 @@ function buildCrate(
 	wasmPackPath: string,
 	cratePath: string,
 	outputPath: string,
-	target: PluginWasmPackOptions["target"],
+	target: CrateTarget["target"],
 ) {
 	const result = runSync(
 		wasmPackPath,
