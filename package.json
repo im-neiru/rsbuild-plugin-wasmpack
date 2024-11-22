@@ -23,7 +23,7 @@
 		"fix": "biome lint --write",
 		"fix-unsafe": "biome lint --write --unsafe"
 	},
-	"keywords": [],
+	"keywords": ["wasm", "rsbuild", "wasm-pack", "rspack", "rust"],
 	"author": "im-neiru",
 	"license": "MIT",
 	"devDependencies": {
