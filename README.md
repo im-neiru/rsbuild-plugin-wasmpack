@@ -27,20 +27,29 @@ import { defineConfig } from "@rsbuild/core";
 import { pluginWasmPack } from "rsbuild-plugin-wasmpack";
 
 export default defineConfig({
-  plugins: [
-    pluginWasmPack({
-      crate: "rust", // The path to your Rust crate
-      output: "wasm", // The output directory for your wasm package
-      target: "web", // The target environment (e.g., 'web', 'nodejs')
-    }),
-  ],
+	plugins: [
+		pluginWasmPack({
+			crates: [
+				{
+					path: "rust1", // The path to your Rust crate
+					output: "wasm1", // The output directory for your wasm package
+					target: "web", // The target environment (e.g., 'web', 'nodejs')
+				},
+				{
+					path: "rust2",
+					output: "wasm2",
+					target: "web",
+				},
+			],
+		}),
+	],
 });
 
 ```
 
 ### Configuration Options
 
-- `crate` (string): The path to your Rust crate or project. This is typically the folder containing `Cargo.toml`.
+- `path` (string): The path to your Rust crate or project. This is typically the folder containing `Cargo.toml`.
 
 - `output` (string): The directory where the generated `.wasm` package will be placed.
 
