@@ -27,24 +27,23 @@ import { defineConfig } from "@rsbuild/core";
 import { pluginWasmPack } from "rsbuild-plugin-wasmpack";
 
 export default defineConfig({
-	plugins: [
-		pluginWasmPack({
-			crates: [
-				{
-					path: "rust1", // The path to your Rust crate
-					output: "wasm1", // The output directory for your wasm package
-					target: "web", // The target environment (e.g., 'web', 'nodejs')
-				},
-				{
-					path: "rust2",
-					output: "wasm2",
-					target: "web",
-				},
-			],
-		}),
-	],
+  plugins: [
+    pluginWasmPack({
+      crates: [
+        {
+          path:   "rust1", // The path to your Rust crate
+          output: "wasm1", // The output directory for your wasm package
+          target: "web",   // The target environment (e.g., 'web', 'nodejs')
+        },
+        {
+          path:   "rust2",
+          output: "wasm2",
+          target: "web",
+        },
+      ],
+    }),
+  ],
 });
-
 ```
 
 ### Configuration Options
