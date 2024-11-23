@@ -12,7 +12,7 @@ This plugin simplifies the integration of Rust to WebAssembly in your rsbuild pr
 
 Before using the plugin, make sure you have:
 
-- [wasm-pack](https://rustwasm.github.io/wasm-pack/) installed:
+- [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/) installed:
 
   ```bash
   cargo install wasm-pack
