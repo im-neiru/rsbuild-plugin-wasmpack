@@ -84,4 +84,4 @@ export default defineConfig({
 
 - `output` (string): The directory where the generated `.wasm` package will be placed.
 
-- `target` (string): The WebAssembly target. [see all supported target by wasm-pack](https://rustwasm.github.io/wasm-pack/book/commands/build.html#target).
+- `target` (string): The WebAssembly target. [See all supported targets in the wasm-pack documentation](https://rustwasm.github.io/wasm-pack/book/commands/build.html#target).
