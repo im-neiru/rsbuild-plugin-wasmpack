@@ -79,15 +79,15 @@ export const pluginWasmPack = (
 				throw new Error(`No output directory for ${path.basename(crate.path)}`);
 			}
 
-			if (fs.existsSync(path.resolve(crate.path, "Cargo.toml"))) {
-				throw new Error(`${path.basename(crate.path)} does not exists`);
+			if (!fs.existsSync(path.resolve(crate.path, "Cargo.toml"))) {
+				throw new Error(`${path.resolve(crate.path)} does not exists`);
 			}
 
 			const fullPath = path.resolve(crate.path);
 
 			crates.push({
 				path: fullPath,
-				output: path.resolve(crate.path),
+				output: path.resolve(crate.output),
 				target: crate.target,
 			});
 
@@ -104,23 +104,28 @@ export const pluginWasmPack = (
 
 		api.onBeforeBuild(initialBuild);
 		api.onBeforeStartProdServer(initialBuild);
-		api.onBeforeStartDevServer(initialBuild);
 
-		api.onAfterStartDevServer(() => {
+		api.onBeforeStartDevServer(() => {
+			initialBuild();
+
 			for (const [_path, watcher] of watchers) {
 				watcher.close();
 			}
 
+			watchers.clear();
+
 			watchers = new Map(
 				crates.map((crate) => [
 					crate.path,
-					fs.watch(crate.path, { encoding: "buffer" }, (event) => {
-						if (event !== "change") return;
+					fs.watch(
+						path.resolve(crate.path, "src"),
+						{ encoding: "buffer", recursive: true },
+						() => {
+							console.log("Rebuilding ", path.basename(crate.path));
 
-						console.log("Rebuilding ", path.basename(crate.path));
-
-						buildCrate(wasmPackPath, crate.path, crate.output, crate.target);
-					}),
+							buildCrate(wasmPackPath, crate.path, crate.output, crate.target);
+						},
+					),
 				]),
 			);
 		});
