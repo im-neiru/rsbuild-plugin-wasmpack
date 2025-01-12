@@ -130,4 +130,3 @@ initializeRust2().then((rust2) => {
   - `profileOnProd` ("dev"| "profiling" | "release"): The profile to use when building the crate in production mode. This is optional and defaults to `dev`.
 
 - `wasmpackPath` (string): The path to the wasm-pack executable. This is optional and defaults to `~/.cargo/bin/wasm-pack`.
-
