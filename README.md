@@ -8,6 +8,10 @@
 
 This plugin simplifies the integration of Rust to WebAssembly in your rsbuild projects, allowing you to easily compile and bundle your Rust code for use in web applications.
 
+## Demo
+
+![Demo](./assets/hotreload.webp)
+
 ## Prerequisites
 
 Before using the plugin, make sure you have:
