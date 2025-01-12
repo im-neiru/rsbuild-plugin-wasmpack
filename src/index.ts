@@ -10,6 +10,11 @@ export type PluginWasmPackOptions = {
    * A list of Rust crates to be built using `wasm-pack`.
    */
   crates: CrateTarget[];
+
+  /**
+   * The path to the `wasm-pack` executable. If not provided, the plugin will attempt to find it in the user's home directory.
+   */
+  wasmpackPath?: string;
 };
 
 export type CrateTarget = {
@@ -44,13 +49,15 @@ export const pluginWasmPack = (
 ): RsbuildPlugin => ({
   name: "rsbuild:wasmpack",
   setup: (api) => {
-    const wasmPackPath = path.resolve(
-      process.env.HOME || "",
-      ".cargo/bin/wasm-pack"
-    );
+    const wasmPackPath =
+      (options?.wasmpackPath?.length ?? 0) > 1
+        ? path.resolve(options.wasmpackPath as string)
+        : path.resolve(process.env.HOME || "", ".cargo/bin/wasm-pack");
 
     if (!fs.existsSync(wasmPackPath)) {
-      throw new Error("wasm-pack not found please install it");
+      throw new Error(
+        "wasm-pack not found, please install wasm-pack or provide the path to the wasm-pack executable"
+      );
     }
 
     if (!(options?.crates?.length > 0)) {
