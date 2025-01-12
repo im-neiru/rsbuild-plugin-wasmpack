@@ -2,6 +2,8 @@ import type { RsbuildPlugin } from "@rsbuild/core";
 import { sync as runSync } from "cross-spawn";
 import path from "node:path";
 import fs from "node:fs";
+import { load as loadToml } from "js-toml";
+
 /**
  * Configuration options for the `pluginWasmPack`.
  */
@@ -64,7 +66,7 @@ export const pluginWasmPack = (
       throw new Error("No crates specified in the plugin options");
     }
 
-    const crates = new Array<CrateTarget & { output: string }>();
+    const crates = new Array<CrateTarget & { output: string; name: string }>();
     const paths = new Set<string>();
 
     for (const crate of options.crates) {
@@ -81,12 +83,19 @@ export const pluginWasmPack = (
       }
 
       const fullPath = path.resolve(crate.path);
-      const crateName = path.basename(fullPath);
+      const cargoToml = readCargoToml(path.resolve(fullPath, "Cargo.toml"));
+
+      if (!cargoToml?.package?.name || cargoToml.package.name.length === 0) {
+        throw new Error(
+          `Missing package name in Cargo.toml in ${path.basename(fullPath)}`
+        );
+      }
 
       crates.push({
         path: fullPath,
-        output: path.resolve("node_modules", crateName),
+        output: path.resolve("node_modules", cargoToml.package.name),
         target: crate.target,
+        name: cargoToml.package.name,
       });
 
       paths.add(fullPath);
@@ -95,13 +104,22 @@ export const pluginWasmPack = (
     function initialBuild() {
       for (const crate of options.crates) {
         const fullPath = path.resolve(crate.path);
-        const crateName = path.basename(fullPath);
-        console.log(`Building ${crateName}`);
+
+        const cargoToml = readCargoToml(path.resolve(fullPath, "Cargo.toml"));
+
+        if (!cargoToml?.package?.name || cargoToml.package.name.length === 0) {
+          throw new Error(
+            `Missing package name in Cargo.toml in ${path.basename(fullPath)}`
+          );
+        }
+
+        console.log(`Building ${cargoToml.package.name}`);
 
         buildCrate(
           wasmPackPath,
           crate.path,
-          path.resolve("node_modules", crateName),
+
+          path.resolve("node_modules", cargoToml.package.name),
           crate.target
         );
       }
@@ -126,7 +144,7 @@ export const pluginWasmPack = (
             path.resolve(crate.path, "src"),
             { encoding: "buffer", recursive: true },
             () => {
-              console.log("Rebuilding ", path.basename(crate.path));
+              console.log(`Rebuilding ${crate.name}`);
 
               buildCrate(wasmPackPath, crate.path, crate.output, crate.target);
             }
@@ -174,4 +192,15 @@ function buildCrate(
   if (result.status !== 0) {
     throw new Error(`wasm-pack exited with status code ${result.status}`);
   }
+}
+
+type CargoToml = {
+  package?: {
+    name?: string;
+  };
+};
+
+function readCargoToml(cargoTomlPath: string): CargoToml {
+  const cargoToml = fs.readFileSync(cargoTomlPath, "utf-8");
+  return loadToml(cargoToml);
 }
