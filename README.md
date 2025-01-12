@@ -62,26 +62,49 @@ export default defineConfig({
   plugins: [
     pluginWasmPack({
       crates: [
-        {
-          path:   "rust1", // The path to your Rust crate
-          output: "wasm1", // The output directory for your wasm package
-          target: "web",   // The target environment (e.g., 'web', 'nodejs')
-        },
-        {
-          path:   "rust2",
-          output: "wasm2",
-          target: "web",
-        },
-      ],
-    }),
+          {
+            path:   "rust1", // The path to your Rust crate
+            target: "web",   // The target environment (e.g., 'web', 'nodejs')
+          },
+          {
+            path:   "rust2",
+            target: "web",
+            profileOnDev: "profiling", // Optional: The profile to use when building the crate in development mode (default: 'dev')
+            profileOnProd: "release",   // Optional: The profile to use when building the crate in production mode (default: 'release')
+          },
+        ],
+      },
+      wasmpackPath: "path/to/wasm-pack", // Optional: The path to the wasm-pack executable (default: '~/.cargo/bin/wasm-pack')
+    ),
   ],
 });
 ```
 
+### Example  usage
+
+```typescript
+import initializeRust1 from "rust1"; // Note that the package name is the specified name in the `Cargo.toml` file
+import initializeRust2 from "rust2";
+
+initializeRust1().then((rust1) => {
+  rust1.greet("World1"); // Call the exported function from the Rust crate
+});
+
+initializeRust2().then((rust2) => {
+  rust2.greet("World2");
+});
+
+```
+
 ### Configuration Options
 
-- `path` (string): The path to your Rust crate or project. This is typically the folder containing `Cargo.toml`.
+- `crates` (array): An array of objects representing the Rust crates you want to compile. Each object should have the following properties:
+  - `path` (string): The path to your Rust crate or project. This is typically the folder containing `Cargo.toml`.
 
-- `output` (string): The directory where the generated `.wasm` package will be placed.
+  - `target` (string): The WebAssembly target. [See all supported targets in the wasm-pack documentation](https://rustwasm.github.io/wasm-pack/book/commands/build.html#target).
 
-- `target` (string): The WebAssembly target. [See all supported targets in the wasm-pack documentation](https://rustwasm.github.io/wasm-pack/book/commands/build.html#target).
+  - `profileOnDev` ("dev"| "profiling" | "release"): The profile to use when building the crate in development mode. This is optional and defaults to `dev`.
+
+  - `profileOnProd` ("dev"| "profiling" | "release"): The profile to use when building the crate in production mode. This is optional and defaults to `dev`.
+
+- `wasmpackPath` (string): The path to the wasm-pack executable. This is optional and defaults to `~/.cargo/bin/wasm-pack`.
