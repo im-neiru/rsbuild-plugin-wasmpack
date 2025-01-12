@@ -14,7 +14,9 @@
 	"main": "./dist/index.js",
 	"module": "./dist/index.mjs",
 	"types": "./dist/index.d.ts",
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"build": "rslib build",
 		"test": "playwright test",
@@ -23,7 +25,13 @@
 		"fix": "biome lint --write",
 		"fix-unsafe": "biome lint --write --unsafe"
 	},
-	"keywords": ["wasm", "rsbuild", "wasm-pack", "rspack", "rust"],
+	"keywords": [
+		"wasm",
+		"rsbuild",
+		"wasm-pack",
+		"rspack",
+		"rust"
+	],
 	"author": "im-neiru",
 	"license": "MIT",
 	"devDependencies": {
@@ -37,6 +45,7 @@
 		"playwright": "^1.49.0"
 	},
 	"dependencies": {
+		"js-toml": "^1.0.1",
 		"typescript": "^5.6.3"
 	},
 	"peerDependencies": {
