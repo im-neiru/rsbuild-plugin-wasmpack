@@ -6,11 +6,29 @@
 
 `rsbuild-plugin-wasmpack` is a plugin for [rsbuild](https://rsbuild.dev/) that enables you to compile and build Rust crates into WebAssembly (Wasm) using [wasm-pack](https://rustwasm.github.io/wasm-pack/).
 
-This plugin simplifies the integration of Rust to WebAssembly in your rsbuild projects, allowing you to easily compile and bundle your Rust code for use in web applications.
+This plugin simplifies the integration of Rust to WebAssembly in your projects, allowing you to easily compile and bundle your Rust code for use in web applications.
+
+## Table of Contents
+
+- [`rsbuild-plugin-wasmpack`](#rsbuild-plugin-wasmpack)
+  - [Table of Contents](#table-of-contents)
+  - [Demo](#demo)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+    - [npm](#npm)
+    - [bun](#bun)
+    - [pnpm](#pnpm)
+    - [yarn](#yarn)
+  - [Usage](#usage)
+    - [Example `rsbuild.config.js`](#example-rsbuildconfigjs)
+    - [Example usage](#example-usage)
+    - [Configuration Options](#configuration-options)
 
 ## Demo
 
 ![Demo](./assets/hotreload.webp)
+
+This demo shows the hot-reloading feature of the `rsbuild-plugin-wasmpack` in action. As you make changes to your Rust code, the plugin automatically rebuilds the WebAssembly package and updates the web application without requiring a full page reload.
 
 ## Prerequisites
 
@@ -84,7 +102,7 @@ export default defineConfig({
 });
 ```
 
-### Example  usage
+### Example usage
 
 ```typescript
 import initializeRust1 from "rust1"; // Note that the package name is the specified name in the `Cargo.toml` file
@@ -112,3 +130,4 @@ initializeRust2().then((rust2) => {
   - `profileOnProd` ("dev"| "profiling" | "release"): The profile to use when building the crate in production mode. This is optional and defaults to `dev`.
 
 - `wasmpackPath` (string): The path to the wasm-pack executable. This is optional and defaults to `~/.cargo/bin/wasm-pack`.
+
