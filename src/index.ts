@@ -3,6 +3,7 @@ import { sync as runSync } from "cross-spawn";
 import path from "node:path";
 import fs from "node:fs";
 import { load as loadToml } from "js-toml";
+import { profile } from "node:console";
 
 /**
  * Configuration options for the `pluginWasmPack`.
@@ -35,9 +36,21 @@ export type CrateTarget = {
    * - `"bundler"`: Outputs a package suitable for module bundlers like Webpack or Rollup.
    */
   target: "nodejs" | "web" | "no-modules" | "deno" | "bundler";
+
+  /**
+   * Use this option to specify the profile to build the crate with. default is `dev`
+   */
+  profileOnDev?: ProfileType;
+
+  /**
+   * Use this option to specify the profile to build the crate with. default is `release`
+   */
+  profileOnProd?: ProfileType;
 };
 
 let watchers = new Map<string, fs.FSWatcher>();
+
+export type ProfileType = "dev" | "release" | "profiling";
 
 /**
  * Creates an `RsbuildPlugin` that uses `wasm-pack` to build a Rust crate
@@ -74,6 +87,24 @@ export const pluginWasmPack = (
         throw new Error("Crate path is missing or invalid");
       }
 
+      if (
+        crate.profileOnDev &&
+        crate.profileOnDev !== "dev" &&
+        crate.profileOnDev !== "release" &&
+        crate.profileOnDev !== "profiling"
+      ) {
+        throw new Error("Invalid profileOnDev option");
+      }
+
+      if (
+        crate.profileOnProd &&
+        crate.profileOnProd !== "dev" &&
+        crate.profileOnProd !== "release" &&
+        crate.profileOnProd !== "profiling"
+      ) {
+        throw new Error("Invalid profileOnDev option");
+      }
+
       if (!(crate?.target?.length > 0)) {
         throw new Error(`No target directory for ${path.basename(crate.path)}`);
       }
@@ -101,7 +132,7 @@ export const pluginWasmPack = (
       paths.add(fullPath);
     }
 
-    function initialBuild() {
+    function initialBuild({ devMode }: { devMode: boolean }) {
       for (const crate of options.crates) {
         const fullPath = path.resolve(crate.path);
 
@@ -120,16 +151,24 @@ export const pluginWasmPack = (
           crate.path,
 
           path.resolve("node_modules", cargoToml.package.name),
-          crate.target
+          crate.target,
+          devMode
+            ? crate.profileOnDev ?? "dev"
+            : crate.profileOnProd ?? "release"
         );
       }
     }
 
-    api.onBeforeBuild(initialBuild);
-    api.onBeforeStartProdServer(initialBuild);
+    api.onBeforeBuild(() => {
+      initialBuild({ devMode: false });
+    });
+
+    api.onBeforeStartProdServer(() => {
+      initialBuild({ devMode: false });
+    });
 
     api.onBeforeStartDevServer(() => {
-      initialBuild();
+      initialBuild({ devMode: true });
 
       for (const [_path, watcher] of watchers) {
         watcher.close();
@@ -146,7 +185,13 @@ export const pluginWasmPack = (
             () => {
               console.log(`Rebuilding ${crate.name}`);
 
-              buildCrate(wasmPackPath, crate.path, crate.output, crate.target);
+              buildCrate(
+                wasmPackPath,
+                crate.path,
+                crate.output,
+                crate.target,
+                crate.profileOnDev ?? "dev"
+              );
             }
           ),
         ])
@@ -167,11 +212,12 @@ function buildCrate(
   wasmPackPath: string,
   cratePath: string,
   outputPath: string,
-  target: CrateTarget["target"]
+  target: CrateTarget["target"],
+  profile: ProfileType
 ) {
   const result = runSync(
     wasmPackPath,
-    ["build", "--out-dir", outputPath, "--target", target],
+    ["build", "--out-dir", outputPath, "--target", target, `--${profile}`],
     {
       stdio: "inherit",
       cwd: cratePath,
