@@ -61,7 +61,7 @@ export const pluginWasmPack = (
     }
 
     if (!(options?.crates?.length > 0)) {
-      throw new Error("Crates are missing");
+      throw new Error("No crates specified in the plugin options");
     }
 
     const crates = new Array<CrateTarget & { output: string }>();
@@ -69,7 +69,7 @@ export const pluginWasmPack = (
 
     for (const crate of options.crates) {
       if (!(crate?.path?.length > 0)) {
-        throw new Error("Crate path is missing");
+        throw new Error("Crate path is missing or invalid");
       }
 
       if (!(crate?.target?.length > 0)) {
