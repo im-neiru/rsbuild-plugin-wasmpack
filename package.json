@@ -38,7 +38,7 @@
 		"@biomejs/biome": "1.9.4",
 		"@playwright/test": "^1.49.0",
 		"@rsbuild/core": "^1.1.4",
-		"@rslib/core": "0.1.0",
+		"@rslib/core": "0.6.5",
 		"@types/cross-spawn": "^6.0.6",
 		"@types/node": "^22.14.1",
 		"cross-spawn": "^7.0.6",
