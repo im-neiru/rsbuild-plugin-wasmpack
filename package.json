@@ -40,7 +40,7 @@
 		"@rsbuild/core": "^1.1.4",
 		"@rslib/core": "0.1.0",
 		"@types/cross-spawn": "^6.0.6",
-		"@types/node": "^22.9.1",
+		"@types/node": "^22.14.1",
 		"cross-spawn": "^7.0.6",
 		"playwright": "^1.49.0"
 	},
