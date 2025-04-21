@@ -3,7 +3,7 @@ import { sync as runSync } from "cross-spawn";
 import path from "node:path";
 import fs from "node:fs";
 import { load as loadToml } from "js-toml";
-import { profile } from "node:console";
+import { RustInstallerOptions } from "./rust-installer.js";
 
 /**
  * Configuration options for the `pluginWasmPack`.
@@ -18,7 +18,19 @@ export type PluginWasmPackOptions = {
    * The path to the `wasm-pack` executable. If not provided, the plugin will attempt to find it in the user's home directory.
    */
   wasmpackPath?: string;
-};
+
+  /**
+   * Rust toolchain options for auto installation when toolchain is not available
+   */
+} & (
+  | {
+      rustAutoInstall: false | null | undefined;
+    }
+  | {
+      rustAutoInstall: true;
+      rustToolchainOptions: RustInstallerOptions;
+    }
+);
 
 export type CrateTarget = {
   /**
