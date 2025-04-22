@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import path from "node:path";
 import * as https from "node:https";
 import * as http from "node:http";
-import { spawnSync } from "node:child_process";
+import { sync as runSync } from "cross-spawn";
 
 export type RustInstallerOptions = {
   defaultToolchain?: "stable" | "beta" | "nightly" | "none";
@@ -21,8 +21,25 @@ export class RustInstaller {
   private readonly rustupInitSrc: string;
   private readonly rustupInitDestDir: string;
   private readonly rustInitName: string;
+  private readonly args: string[];
 
   constructor(options: RustInstallerOptions) {
+    {
+      // Default options
+
+      if (!options?.profile) {
+        options.profile = "minimal";
+      }
+
+      if (!options?.defaultToolchain) {
+        options.defaultToolchain = "nightly";
+      }
+
+      if (!options?.targets) {
+        options.targets = new Set(["wasm32-unknown-unknown"]);
+      }
+    }
+
     const rustUpdateRoot =
       process.env.RUSTUP_UPDATE_ROOT || "https://static.rust-lang.org/rustup";
 
@@ -53,17 +70,30 @@ export class RustInstaller {
       }
     }
 
-    console.log(tmpDir);
-
     this.rustupInitDestDir = path.join(tmpDir, "rustup-init-");
+    this.args = RustInstaller.getSpawnArgs(options);
   }
 
   async install() {
-    const destDir = fs.mkdtempSync(path.dirname(this.rustupInitDestDir));
-    RustInstaller.download(
-      this.rustupInitSrc,
-      path.join(destDir, this.rustInitName)
-    );
+    const tempDir = fs.mkdtempSync(this.rustupInitDestDir);
+    const rustInitPath = path.join(tempDir, this.rustInitName);
+
+    await RustInstaller.download(this.rustupInitSrc, rustInitPath);
+
+    fs.chmodSync(rustInitPath, 0o755);
+
+    console.log("Installing Rust toolchain, Please wait");
+
+    const installer = runSync(rustInitPath, this.args, {
+      stdio: "inherit",
+    });
+
+    fs.unlinkSync(rustInitPath);
+    fs.rmdirSync(tempDir);
+
+    if (installer.status) {
+      console.log("Cargo successfully installed");
+    }
   }
 
   private static getArch() {
@@ -75,7 +105,7 @@ export class RustInstaller {
     if (type === "Linux") {
       let clib = "gnu";
       try {
-        const ldd = spawnSync("ldd", ["--version"]);
+        const ldd = runSync("ldd", ["--version"]);
         if (
           Buffer.isBuffer(ldd.stdout) &&
           ldd.stdout.toString().includes("musl")
@@ -132,5 +162,31 @@ export class RustInstaller {
 
       req.on("error", reject);
     });
+  }
+
+  static getSpawnArgs(options: RustInstallerOptions): string[] {
+    const args: string[] = ["-y"];
+
+    // --default-toolchain <name>
+    if (options.defaultToolchain) {
+      args.push("--default-toolchain", options.defaultToolchain);
+    }
+
+    // --profile <profile>
+    if (options.profile) {
+      args.push("--profile", options.profile);
+    }
+
+    // --component rustfmt,clippy,...
+    if (options.components && options.components.size > 0) {
+      args.push("--component", Array.from(options.components).join(","));
+    }
+
+    // --target wasm32-unknown-unknown,...
+    if (options.targets && options.targets.size > 0) {
+      args.push("--target", Array.from(options.targets).join(","));
+    }
+
+    return args;
   }
 }
