@@ -82,18 +82,16 @@ export class RustInstaller {
 
     fs.chmodSync(rustInitPath, 0o755);
 
-    console.log("Installing Rust toolchain, Please wait");
+    console.info("Installing Rust toolchain, Please wait");
 
-    const installer = runSync(rustInitPath, this.args, {
+    runSync(rustInitPath, this.args, {
       stdio: "inherit",
     });
 
     fs.unlinkSync(rustInitPath);
     fs.rmdirSync(tempDir);
 
-    if (installer.status) {
-      console.log("Cargo successfully installed");
-    }
+    return detectCargoBin();
   }
 
   private static getArch() {
@@ -155,7 +153,7 @@ export class RustInstaller {
         });
 
         file.on("finish", () => {
-          console.log("\nDownload complete!");
+          console.info("\nDownload complete!");
           file.close(() => resolve());
         });
       });
@@ -164,7 +162,7 @@ export class RustInstaller {
     });
   }
 
-  static getSpawnArgs(options: RustInstallerOptions): string[] {
+  private static getSpawnArgs(options: RustInstallerOptions): string[] {
     const args: string[] = ["-y"];
 
     // --default-toolchain <name>
@@ -188,5 +186,28 @@ export class RustInstaller {
     }
 
     return args;
+  }
+}
+
+export function detectCargoBin(): string | null {
+  let cargoHome: string | undefined;
+
+  if (process.env.CARGO_HOME) {
+    cargoHome = process.env.CARGO_HOME;
+  } else {
+    const homeDir = os.homedir();
+    if (os.platform() === "win32") {
+      cargoHome = path.join(homeDir, ".cargo");
+    } else {
+      cargoHome = path.join(homeDir, ".cargo");
+    }
+  }
+
+  const binPath = path.join(cargoHome, "bin");
+
+  if (fs.existsSync(binPath)) {
+    return binPath;
+  } else {
+    return null;
   }
 }

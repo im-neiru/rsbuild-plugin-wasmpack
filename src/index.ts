@@ -2,8 +2,13 @@ import type { RsbuildPlugin } from "@rsbuild/core";
 import { sync as runSync } from "cross-spawn";
 import path from "node:path";
 import fs from "node:fs";
+import * as os from "node:os";
 import { load as loadToml } from "js-toml";
-import { RustInstallerOptions } from "./rust-installer.js";
+import {
+  detectCargoBin,
+  RustInstaller,
+  RustInstallerOptions,
+} from "./rust-installer.js";
 
 /**
  * Configuration options for the `pluginWasmPack`.
@@ -19,15 +24,16 @@ export type PluginWasmPackOptions = {
    */
   wasmpackPath?: string;
 
-  /**
-   * Rust toolchain options for auto installation when toolchain is not available
-   */
+  autoInstallWasmPack?: boolean;
 } & (
   | {
-      rustAutoInstall: false | null | undefined;
+      autoInstallRust: false | null | undefined;
     }
   | {
-      rustAutoInstall: true;
+      autoInstallRust: true;
+      /**
+       * Rust toolchain options for auto installation when toolchain is not available
+       */
       rustToolchainOptions: RustInstallerOptions;
     }
 );
@@ -75,16 +81,72 @@ export const pluginWasmPack = (
   options: PluginWasmPackOptions
 ): RsbuildPlugin => ({
   name: "rsbuild:wasmpack",
-  setup: (api) => {
-    const wasmPackPath =
+  setup: async (api) => {
+    const exeExt = os.type().includes("Windows") ? ".exe" : "";
+
+    let cargoBinPath = detectCargoBin();
+
+    if (cargoBinPath == null) {
+      if (options.autoInstallRust === true) {
+        console.info(
+          "Rust toolchain not detected. Initiating auto-installation..."
+        );
+
+        try {
+          const rustInstaller = new RustInstaller(options.rustToolchainOptions);
+          const newlyInstalledPath = await rustInstaller.install();
+
+          if (newlyInstalledPath == null) {
+            throw new Error(
+              "Rust toolchain installation failed. Please try again or install it manually."
+            );
+          } else {
+            console.info("Rust toolchain successfully installed.");
+            cargoBinPath = newlyInstalledPath;
+          }
+        } catch (error) {
+          throw new Error(
+            `An error occurred during Rust toolchain installation: ${error}`
+          );
+        }
+      } else {
+        throw new Error(
+          "Rust toolchain is not installed. Please install Rust from https://www.rust-lang.org/tools/install to continue."
+        );
+      }
+    }
+
+    let wasmPackPath =
       (options?.wasmpackPath?.length ?? 0) > 1
         ? path.resolve(options.wasmpackPath as string)
-        : path.resolve(process.env.HOME || "", ".cargo/bin/wasm-pack");
+        : path.resolve(os.homedir() || "", `.cargo/bin/wasm-pack${exeExt}`);
 
     if (!fs.existsSync(wasmPackPath)) {
-      throw new Error(
-        "wasm-pack not found, please install wasm-pack or provide the path to the wasm-pack executable"
-      );
+      wasmPackPath = path.resolve(cargoBinPath, `wasm-pack${exeExt}`);
+    }
+
+    if (!fs.existsSync(wasmPackPath)) {
+      if (options.autoInstallWasmPack === true) {
+        runSync(
+          path.join(cargoBinPath, `cargo${exeExt}`),
+          ["install", "wasm-pack"],
+          {
+            stdio: "inherit",
+          }
+        );
+
+        const possiblePath = path.resolve(cargoBinPath, `wasm-pack${exeExt}`);
+
+        if (fs.existsSync(possiblePath)) {
+          wasmPackPath = possiblePath;
+        } else {
+          throw new Error("Failed to install wasm-pack");
+        }
+      } else {
+        throw new Error(
+          "wasm-pack not found, please install wasm-pack or provide the path to the wasm-pack executable"
+        );
+      }
     }
 
     if (!(options?.crates?.length > 0)) {
@@ -156,7 +218,7 @@ export const pluginWasmPack = (
           );
         }
 
-        console.log(`Building ${cargoToml.package.name}`);
+        console.info(`Building ${cargoToml.package.name}`);
 
         buildCrate(
           wasmPackPath,
@@ -195,7 +257,7 @@ export const pluginWasmPack = (
             path.resolve(crate.path, "src"),
             { encoding: "buffer", recursive: true },
             () => {
-              console.log(`Rebuilding ${crate.name}`);
+              console.info(`Rebuilding ${crate.name}`);
 
               buildCrate(
                 wasmPackPath,
