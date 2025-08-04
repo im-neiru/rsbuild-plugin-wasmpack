@@ -45,6 +45,7 @@
 	},
 	"dependencies": {
 		"chokidar": "^4.0.3",
+		"comment-json": "^4.2.5",
 		"execa": "^9.6.0",
 		"js-toml": "1.0.2",
 		"typescript": "5.9.2"
