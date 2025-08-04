@@ -3,7 +3,12 @@ import * as os from "node:os";
 import path from "node:path";
 import type { RsbuildPlugin, RsbuildPluginAPI } from "@rsbuild/core";
 import { sync as runSync } from "cross-spawn";
-import { aliasTsconfig, loadOldPkgsDir, saveOldPkgsDir } from "./aliasing.js";
+import {
+  aliasTsconfig,
+  isValidUnscopedModuleName,
+  loadOldPkgsDir,
+  saveOldPkgsDir,
+} from "./aliasing.js";
 import { buildCrates, watchCrates } from "./builder.js";
 import type { PluginWasmPackOptions } from "./options.js";
 import { detectCargoBin, RustInstaller } from "./rust-installer.js";
@@ -15,6 +20,22 @@ export const pluginWasmPack = (
 ): RsbuildPlugin => ({
   name: "rsbuild:wasmpack",
   setup: async (api: RsbuildPluginAPI) => {
+    if (options.pkgsDir) {
+      if (!isValidUnscopedModuleName(path.basename(options.pkgsDir))) {
+        throw new Error(
+          "Invalid `pkgsDir`. Make sure it is a valid package name for NodeJS."
+        );
+      }
+
+      const pkgsDirStat = fs.statSync(options.pkgsDir);
+
+      if (pkgsDirStat.isFile()) {
+        throw new Error(
+          "Invalid `pkgsDir`. Make sure it is an empty directory and not a file."
+        );
+      }
+    }
+
     const exeExt = os.type().includes("Windows") ? ".exe" : "";
     let cargoBinPath = detectCargoBin();
 

@@ -75,3 +75,22 @@ export function loadOldPkgsDir(): string | undefined {
 
   return undefined;
 }
+
+export function isValidUnscopedModuleName(name: string): boolean {
+  if (typeof name !== "string" || name.trim() === "") return false;
+
+  if (name.startsWith("@")) return false;
+
+  if (
+    name.startsWith("./") ||
+    name.startsWith("../") ||
+    name.startsWith("/") ||
+    /^[a-zA-Z]:\\/.test(name)
+  ) {
+    return false;
+  }
+
+  const validUnscopedPackageRegex = /^[a-z0-9][a-z0-9._-]*$/i;
+
+  return validUnscopedPackageRegex.test(name);
+}
