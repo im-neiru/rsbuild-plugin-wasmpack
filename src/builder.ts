@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Logger } from "@rsbuild/core";
-import type { Compiler } from "@rspack/core";
 import chokidar from "chokidar";
 import { execa } from "execa";
 import { load as loadToml } from "js-toml";
@@ -10,48 +9,6 @@ import type {
   PluginWasmPackOptions,
   ProfileType,
 } from "./options.js";
-
-export class WasmPackPlugin {
-  private crates: NonNullable<ReturnType<typeof readCrateTomls>>;
-  private wasmPackPath: string;
-  private devMode: boolean;
-
-  constructor(options: {
-    crates: CrateTarget[];
-    wasmPackPath: string;
-    devMode: boolean;
-    pkgsDir: string;
-  }) {
-    this.crates = readCrateTomls(options.pkgsDir, options.crates)!;
-    this.wasmPackPath = options.wasmPackPath;
-    this.devMode = options.devMode;
-  }
-
-  apply(compiler: Compiler): void {
-    if (this.devMode) {
-      // watcher.on("all", async (event, filePath) => {
-      //   const crate = this.crates.find((c) => filePath.startsWith(c.path));
-      //   if (!crate) return;
-      //   console.info(`[rsbuild:wasmpack] ${event} → ${filePath}`);
-      //   try {
-      //     await buildCrate(
-      //       this.wasmPackPath,
-      //       crate.path,
-      //       crate.output,
-      //       crate.target,
-      //       crate.profileOnDev ?? "dev"
-      //     );
-      //     compiler.hooks.
-      //   } catch (err) {
-      //     console.error(
-      //       `[rsbuild:wasmpack] Failed to build ${crate.name}:`,
-      //       err
-      //     );
-      //   }
-      // });
-    }
-  }
-}
 
 export function watchCrates(
   options: PluginWasmPackOptions,

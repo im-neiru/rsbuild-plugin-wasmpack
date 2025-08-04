@@ -14,7 +14,18 @@ export type PluginWasmPackOptions = {
    */
   wasmpackPath?: string;
 
+  /**
+   * Directory where compiled Wasm packages will be placed.
+   * Defaults to `"pkgs"` at the project root.
+   */
   pkgsDir?: string;
+
+  /**
+   * Whether to create an alias entry in the bundler config (e.g., Vite/Rspack)
+   * pointing to each compiled Wasm package inside `pkgsDir`.
+   * Defaults to `true`.
+   */
+  aliasPkgDir?: boolean;
 
   /**
    * If true, will attempt to install `wasm-pack` using Cargo if it is not found.

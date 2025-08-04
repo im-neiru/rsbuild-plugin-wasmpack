@@ -3,8 +3,8 @@ import * as os from "node:os";
 import path from "node:path";
 import type { RsbuildPlugin, RsbuildPluginAPI } from "@rsbuild/core";
 import { sync as runSync } from "cross-spawn";
-
-import { buildCrates, WasmPackPlugin, watchCrates } from "./builder.js";
+import { aliasTsconfig } from "./alias-tsconfig.js";
+import { buildCrates, watchCrates } from "./builder.js";
 import type { PluginWasmPackOptions } from "./options.js";
 import { detectCargoBin, RustInstaller } from "./rust-installer.js";
 
@@ -73,15 +73,18 @@ export const pluginWasmPack = (
       }
     });
 
-    api.modifyBundlerChain((chain) => {
-      chain.plugin("wasmpack-plugin").use(WasmPackPlugin, [
-        {
-          crates: options.crates,
-          wasmPackPath,
-          devMode: api.context.action == "dev",
-          pkgsDir: options.pkgsDir ?? "pkgs",
-        },
-      ]);
-    });
+    if (options.aliasPkgDir != false) {
+      api.modifyBundlerChain((chain) => {
+        const aliasName = options.pkgsDir
+          ? `@${path.basename(options.pkgsDir)}`
+          : "@pkgs";
+
+        const pkgsDir = options.pkgsDir ?? "pkgs";
+
+        chain.resolve.alias.set(aliasName, pkgsDir);
+
+        aliasTsconfig(aliasName, pkgsDir);
+      });
+    }
   },
 });
