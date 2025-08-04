@@ -1,13 +1,13 @@
-import type { RsbuildPlugin } from "@rsbuild/core";
-import { sync as runSync } from "cross-spawn";
-import path from "node:path";
 import fs from "node:fs";
 import * as os from "node:os";
+import path from "node:path";
+import type { RsbuildPlugin } from "@rsbuild/core";
+import { sync as runSync } from "cross-spawn";
 import { load as loadToml } from "js-toml";
 import {
   detectCargoBin,
   RustInstaller,
-  RustInstallerOptions,
+  type RustInstallerOptions,
 } from "./rust-installer.js";
 
 /**
@@ -153,7 +153,7 @@ export const pluginWasmPack = (
       throw new Error("No crates specified in the plugin options");
     }
 
-    const crates = new Array<CrateTarget & { output: string; name: string }>();
+    const crates: (CrateTarget & { output: string; name: string })[] = [];
     const paths = new Set<string>();
 
     for (const crate of options.crates) {
@@ -296,7 +296,9 @@ function buildCrate(
       stdio: "inherit",
       cwd: cratePath,
       env: {
-        ...process.env,
+        ...Object.fromEntries(
+          Object.entries(process.env).filter(([key]) => key !== "RUST_LOG")
+        ),
         PATH: `${process.env.PATH}:${path.resolve(
           process.env.HOME || "",
           ".cargo/bin"
