@@ -3,7 +3,7 @@ import * as os from "node:os";
 import path from "node:path";
 import type { RsbuildPlugin, RsbuildPluginAPI } from "@rsbuild/core";
 import { sync as runSync } from "cross-spawn";
-import { aliasTsconfig } from "./alias-tsconfig.js";
+import { aliasTsconfig, loadOldPkgsDir, saveOldPkgsDir } from "./aliasing.js";
 import { buildCrates, watchCrates } from "./builder.js";
 import type { PluginWasmPackOptions } from "./options.js";
 import { detectCargoBin, RustInstaller } from "./rust-installer.js";
@@ -83,7 +83,17 @@ export const pluginWasmPack = (
 
         chain.resolve.alias.set(aliasName, pkgsDir);
 
-        aliasTsconfig(aliasName, pkgsDir);
+        const oldAlias = loadOldPkgsDir();
+
+        if (oldAlias !== undefined && oldAlias !== pkgsDir) {
+          if (oldAlias !== pkgsDir) {
+            aliasTsconfig(aliasName, oldAlias, pkgsDir);
+            saveOldPkgsDir(aliasName);
+          }
+        } else {
+          aliasTsconfig(aliasName, undefined, pkgsDir);
+          saveOldPkgsDir(aliasName);
+        }
       });
     }
   },
