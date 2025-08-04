@@ -77,13 +77,13 @@ export const pluginWasmPack = (
     }
 
     api.onBeforeBuild(async () => {
-      await buildCrates(options, wasmPackPath, false);
+      await buildCrates(api.logger, options, wasmPackPath, false);
     });
 
     api.onBeforeStartDevServer(async ({ server }) => {
-      await buildCrates(options, wasmPackPath, true);
+      await buildCrates(api.logger, options, wasmPackPath, true);
 
-      watcher = watchCrates(options, wasmPackPath, api.logger, () => {
+      watcher = watchCrates(api.logger, options, wasmPackPath, () => {
         server.sockWrite("static-changed");
       });
     });

@@ -3,7 +3,9 @@ import path from "node:path";
 import type { Logger } from "@rsbuild/core";
 import chokidar from "chokidar";
 import { execa } from "execa";
+import fsPromises from "fs/promises";
 import { load as loadToml } from "js-toml";
+import wabtFactory from "wabt";
 import type {
   CrateTarget,
   PluginWasmPackOptions,
@@ -11,9 +13,9 @@ import type {
 } from "./options.js";
 
 export function watchCrates(
+  logger: Logger,
   options: PluginWasmPackOptions,
   wasmPackPath: string,
-  logger: Logger,
   reload: () => void
 ) {
   const crates = readCrateTomls(options.pkgsDir ?? "pkgs", options.crates)!;
@@ -47,6 +49,8 @@ export function watchCrates(
         crate.target,
         crate.profileOnDev ?? "dev"
       );
+
+      stripWasmIn(logger, crate.output);
       reload();
     } catch (err) {
       logger.error(`[rsbuild:wasmpack] Failed to build ${crate.name}:`, err);
@@ -57,6 +61,7 @@ export function watchCrates(
 }
 
 export async function buildCrates(
+  logger: Logger,
   options: PluginWasmPackOptions,
   wasmPackPath: string,
   devMode: boolean
@@ -74,6 +79,8 @@ export async function buildCrates(
       )
     )
   );
+
+  await Promise.all(crates.map((crate) => stripWasmIn(logger, crate.output)));
 }
 
 async function buildCrate(
@@ -137,3 +144,48 @@ type CargoToml = {
     name?: string;
   };
 };
+
+type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
+
+async function stripFile(
+  wabt: UnwrapPromise<ReturnType<typeof wabtFactory>>,
+  filePath: string
+) {
+  const bin = await fsPromises.readFile(filePath);
+  const mod = wabt.readWasm(bin, { readDebugNames: false });
+
+  const { buffer } = mod.toBinary({
+    write_debug_names: false,
+    canonicalize_lebs: true,
+    relocatable: false,
+  });
+
+  await fsPromises.writeFile(filePath, Buffer.from(buffer));
+
+  mod.destroy();
+}
+
+export async function stripWasmIn(logger: Logger, directory: string) {
+  const wabt = await wabtFactory();
+  const stat = await fsPromises.stat(directory);
+
+  if (stat.isDirectory()) {
+    const entries = await fsPromises.readdir(directory, {
+      withFileTypes: true,
+    });
+
+    const wasms = entries
+      .filter((e) => e.isFile() && e.name.endsWith(".wasm"))
+      .map((e) => path.join(directory, e.name));
+
+    if (wasms.length === 0) {
+      logger.warn(`⚠️  No .wasm files found in directory: ${directory}`);
+      return;
+    }
+
+    for (const wasmPath of wasms) {
+      logger.info(`🗜️  Stripping wasm: ${wasmPath}`);
+      await stripFile(wabt, wasmPath);
+    }
+  }
+}
