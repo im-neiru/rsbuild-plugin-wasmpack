@@ -14,6 +14,8 @@ export type PluginWasmPackOptions = {
    */
   wasmpackPath?: string;
 
+  pkgsDir?: string;
+
   /**
    * If true, will attempt to install `wasm-pack` using Cargo if it is not found.
    */

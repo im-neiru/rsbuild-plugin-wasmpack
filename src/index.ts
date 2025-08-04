@@ -4,9 +4,11 @@ import path from "node:path";
 import type { RsbuildPlugin, RsbuildPluginAPI } from "@rsbuild/core";
 import { sync as runSync } from "cross-spawn";
 
-import { WasmPackPlugin } from "./builder.js";
+import { buildCrates, WasmPackPlugin, watchCrates } from "./builder.js";
 import type { PluginWasmPackOptions } from "./options.js";
 import { detectCargoBin, RustInstaller } from "./rust-installer.js";
+
+let watcher: ReturnType<typeof watchCrates> | null = null;
 
 export const pluginWasmPack = (
   options: PluginWasmPackOptions
@@ -53,12 +55,31 @@ export const pluginWasmPack = (
       }
     }
 
+    api.onBeforeBuild(async () => {
+      await buildCrates(options, wasmPackPath, false);
+    });
+
+    api.onBeforeStartDevServer(async () => {
+      await buildCrates(options, wasmPackPath, true);
+    });
+
+    api.onAfterStartDevServer(() => {
+      watcher = watchCrates(options, wasmPackPath, api.logger);
+    });
+
+    api.onCloseDevServer(() => {
+      if (watcher) {
+        watcher.close();
+      }
+    });
+
     api.modifyBundlerChain((chain) => {
       chain.plugin("wasmpack-plugin").use(WasmPackPlugin, [
         {
           crates: options.crates,
           wasmPackPath,
           devMode: api.context.action == "dev",
+          pkgsDir: options.pkgsDir ?? "pkgs",
         },
       ]);
     });
