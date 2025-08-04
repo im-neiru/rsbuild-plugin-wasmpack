@@ -45,6 +45,7 @@
 		"playwright": "1.54.2"
 	},
 	"dependencies": {
+		"chokidar": "^4.0.3",
 		"js-toml": "1.0.2",
 		"typescript": "5.9.2"
 	},
