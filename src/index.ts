@@ -59,12 +59,12 @@ export const pluginWasmPack = (
       await buildCrates(options, wasmPackPath, false);
     });
 
-    api.onBeforeStartDevServer(async () => {
+    api.onBeforeStartDevServer(async ({ server }) => {
       await buildCrates(options, wasmPackPath, true);
-    });
 
-    api.onAfterStartDevServer(() => {
-      watcher = watchCrates(options, wasmPackPath, api.logger);
+      watcher = watchCrates(options, wasmPackPath, api.logger, () => {
+        server.sockWrite("static-changed");
+      });
     });
 
     api.onCloseDevServer(() => {

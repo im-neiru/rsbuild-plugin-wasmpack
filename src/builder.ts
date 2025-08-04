@@ -13,17 +13,22 @@ import type {
 export function watchCrates(
   options: PluginWasmPackOptions,
   wasmPackPath: string,
-  logger: Logger
+  logger: Logger,
+  reload: () => void
 ) {
+  const crates = readCrateTomls(options.pkgsDir ?? "pkgs", options.crates)!;
+
   const watcher = chokidar.watch(
-    options.crates.map((crate) => path.join(crate.path, "src")),
+    crates.map((crate) => path.join(crate.path, "src")),
     {
       ignoreInitial: true,
       usePolling: false,
+      ignored: (filePath) => {
+        const normalized = path.resolve(filePath);
+        return normalized.includes(`${path.sep}target${path.sep}`);
+      },
     }
   );
-
-  const crates = readCrateTomls(options.pkgsDir ?? "pkgs", options.crates)!;
 
   watcher.on("all", async (event, filePath) => {
     const crate = crates.find((crate) =>
@@ -31,7 +36,9 @@ export function watchCrates(
     );
 
     if (!crate) return;
+
     logger.info(`[rsbuild:wasmpack] ${event} → ${filePath}`);
+
     try {
       await buildCrate(
         wasmPackPath,
@@ -40,6 +47,7 @@ export function watchCrates(
         crate.target,
         crate.profileOnDev ?? "dev"
       );
+      reload();
     } catch (err) {
       logger.error(`[rsbuild:wasmpack] Failed to build ${crate.name}:`, err);
     }
@@ -119,9 +127,9 @@ function readCrateTomls(pkgsDir: string, crates: CrateTarget[]) {
       output: path.resolve(pkgsDir, cargoToml.package.name),
       name: cargoToml.package.name,
     });
-
-    return result!;
   }
+
+  return result;
 }
 
 type CargoToml = {
