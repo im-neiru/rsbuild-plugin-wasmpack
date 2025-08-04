@@ -1,21 +1,10 @@
-import * as os from "node:os";
 import * as fs from "node:fs";
-import path from "node:path";
-import * as https from "node:https";
 import * as http from "node:http";
+import * as https from "node:https";
+import * as os from "node:os";
+import path from "node:path";
 import { sync as runSync } from "cross-spawn";
-
-export type RustInstallerOptions = {
-  defaultToolchain?: "stable" | "beta" | "nightly" | "none";
-  profile?: "default" | "minimal" | "complete";
-  components?: Set<"rustfmt" | "clippy" | "rust-docs" | "llvm-tools-preview">;
-  targets?: Set<
-    | "wasm32-unknown-unknown"
-    | "x86_64-pc-windows-gnu"
-    | "aarch64-apple-darwin"
-    | "armv7-unknown-linux-gnueabihf"
-  >;
-};
+import type { RustInstallerOptions } from "./options.js";
 
 export class RustInstaller {
   private readonly rustupInitSrc: string;
@@ -24,20 +13,18 @@ export class RustInstaller {
   private readonly args: string[];
 
   constructor(options: RustInstallerOptions) {
-    {
-      // Default options
+    // Default options
 
-      if (!options?.profile) {
-        options.profile = "minimal";
-      }
+    if (!options?.profile) {
+      options.profile = "minimal";
+    }
 
-      if (!options?.defaultToolchain) {
-        options.defaultToolchain = "nightly";
-      }
+    if (!options?.defaultToolchain) {
+      options.defaultToolchain = "nightly";
+    }
 
-      if (!options?.targets) {
-        options.targets = new Set(["wasm32-unknown-unknown"]);
-      }
+    if (!options?.targets) {
+      options.targets = new Set(["wasm32-unknown-unknown"]);
     }
 
     const rustUpdateRoot =
@@ -51,23 +38,20 @@ export class RustInstaller {
     this.rustupInitSrc = `${rustUpdateRoot}/dist/${arch}/rustup-init${ext}`;
 
     let tmpDir = os.tmpdir();
+    // tmpDir fallbacks
+    if (!fs.existsSync(tmpDir)) {
+      tmpDir =
+        process.env.TEMP || process.env.TMP || onWindows
+          ? "C:\\Windows\\Temp"
+          : "/tmp";
+    }
 
-    {
-      // tmpDir fallbacks
-      if (!fs.existsSync(tmpDir)) {
-        tmpDir =
-          process.env.TEMP || process.env.TMP || onWindows
-            ? "C:\\Windows\\Temp"
-            : "/tmp";
-      }
+    if (!fs.existsSync(tmpDir)) {
+      tmpDir = process.env.TMP || onWindows ? "C:\\Windows\\Temp" : "/tmp";
+    }
 
-      if (!fs.existsSync(tmpDir)) {
-        tmpDir = process.env.TMP || onWindows ? "C:\\Windows\\Temp" : "/tmp";
-      }
-
-      if (!fs.existsSync(tmpDir)) {
-        tmpDir = onWindows ? "C:\\Windows\\Temp" : "/tmp";
-      }
+    if (!fs.existsSync(tmpDir)) {
+      tmpDir = onWindows ? "C:\\Windows\\Temp" : "/tmp";
     }
 
     this.rustupInitDestDir = path.join(tmpDir, "rustup-init-");
