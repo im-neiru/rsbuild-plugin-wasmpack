@@ -4,9 +4,9 @@
 [![downloads](https://img.shields.io/npm/dt/rsbuild-plugin-wasmpack?style=flat-square&colorA=DEA584&colorB=5E4CEF)](https://www.npmjs.com/package/rsbuild-plugin-wasmpack)
 [![license](https://img.shields.io/github/license/nshen/vite-plugin-wasm-pack?style=flat-square&colorA=DEA584&colorB=5E4CEF)](./LICENSE)
 
-`rsbuild-plugin-wasmpack` is a plugin for [rsbuild](https://rsbuild.dev/) that enables you to compile and build Rust crates into WebAssembly (Wasm) using [wasm-pack](https://rustwasm.github.io/wasm-pack/).
+`rsbuild-plugin-wasmpack` is a plugin for [Rsbuild](https://rsbuild.dev/) that enables you to compile Rust crates into WebAssembly (Wasm) using [`wasm-pack`](https://rustwasm.github.io/wasm-pack/). It simplifies integration of Rust code into web applications with support for hot-reloading, crate aliasing, and automatic Rust toolchain management.
 
-This plugin simplifies the integration of Rust to WebAssembly in your projects, allowing you to easily compile and bundle your Rust code for use in web applications.
+---
 
 ## Table of Contents
 
@@ -22,29 +22,43 @@ This plugin simplifies the integration of Rust to WebAssembly in your projects, 
   - [Usage](#usage)
     - [Example `rsbuild.config.js`](#example-rsbuildconfigjs)
     - [Example usage](#example-usage)
-    - [Configuration Options](#configuration-options)
+  - [Configuration Options](#configuration-options)
+    - [`crates` (required)](#crates-required)
+    - [`wasmpackPath` (optional)](#wasmpackpath-optional)
+    - [`pkgsDir` (optional)](#pkgsdir-optional)
+    - [`aliasPkgDir` (optional)](#aliaspkgdir-optional)
+    - [`autoInstallWasmPack` (optional)](#autoinstallwasmpack-optional)
+    - [`autoInstallRust` (optional)](#autoinstallrust-optional)
+
+---
 
 ## Demo
 
 ![Demo](./assets/hotreload.webp)
 
-This demo shows the hot-reloading feature of the `rsbuild-plugin-wasmpack` in action. As you make changes to your Rust code, the plugin automatically rebuilds the WebAssembly package and updates the web application without requiring a full page reload.
+The demo above showcases live reloading of compiled WebAssembly as Rust code is updated.
+
+---
 
 ## Prerequisites
 
-Before using the plugin, make sure you have:
+Ensure the following are available in your environment:
 
-- [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/) installed:
+- [`wasm-pack`](https://rustwasm.github.io/wasm-pack/installer/)
 
   ```bash
   cargo install wasm-pack
   ```
 
-- [rsbuild](https://rsbuild.dev/guide/start/quick-start) set up in your project.
+- A working [Rsbuild](https://rsbuild.dev/) setup in your project.
+
+> If you don’t have Rust or `wasm-pack`, the plugin can optionally install them for you (see [Configuration Options](#configuration-options)).
+
+---
 
 ## Installation
 
-You can add `rsbuild-plugin-wasmpack` as a development dependency using your preferred package manager:
+Install using your package manager of choice:
 
 ### npm
 
@@ -70,6 +84,8 @@ pnpm add -D rsbuild-plugin-wasmpack
 yarn add -D rsbuild-plugin-wasmpack
 ```
 
+---
+
 ## Usage
 
 Once installed, you can add the plugin to your `rsbuild` configuration. Here’s an example configuration for compiling a Rust crate to WebAssembly:
@@ -84,49 +100,117 @@ export default defineConfig({
   plugins: [
     pluginWasmPack({
       crates: [
-          {
-            path:   "rust1", // The path to your Rust crate
-            target: "web",   // The target environment (e.g., 'web', 'nodejs')
-          },
-          {
-            path:   "rust2",
-            target: "web",
-            profileOnDev: "profiling", // Optional: The profile to use when building the crate in development mode (default: 'dev')
-            profileOnProd: "release",   // Optional: The profile to use when building the crate in production mode (default: 'release')
-          },
-        ],
+        {
+          path: "rust1",
+          target: "web",
+        },
+        {
+          path: "rust2",
+          target: "web",
+          profileOnDev: "profiling",
+          profileOnProd: "release",
+        },
+      ],
+      wasmpackPath: "~/.cargo/bin/wasm-pack", // Optional
+      pkgsDir: "pkgs",                        // Optional: default is "pkgs"
+      aliasPkgDir: true,                      // Optional: default is true
+      autoInstallWasmPack: true,              // Optional
+
+      // Optional Rust auto-install setup
+      autoInstallRust: true,
+      rustToolchainOptions: {
+        defaultToolchain: "stable",
+        profile: "minimal",
+        components: new Set(["clippy"]),
+        targets: new Set(["wasm32-unknown-unknown"]),
       },
-      wasmpackPath: "path/to/wasm-pack", // Optional: The path to the wasm-pack executable (default: '~/.cargo/bin/wasm-pack')
-    ),
+    }),
   ],
 });
 ```
 
+> 💡 When `aliasPkgDir` is enabled, an alias will be created that maps `@pkgs/*` to the contents of `pkgsDir` (default is `"pkgs"`).
+> The plugin also attempts to update your `tsconfig.json` with the correct alias. Be sure to check it manually if the automatic patch fails.
+
+---
+
 ### Example usage
 
 ```typescript
-import initializeRust1 from "rust1"; // Note that the package name is the specified name in the `Cargo.toml` file
-import initializeRust2 from "rust2";
+import initializeRust1 from "@pkgs/rust1"; // Maps to pkgs/rust1 based on pkgsDir and aliasPkgDir
+import initializeRust2 from "@pkgs/rust2";
+
+// 🔔 Note: This import alias only works if `aliasPkgDir` is enabled.
+// If disabled, you must import from the actual relative path (e.g., "../pkgs/rust1").
 
 initializeRust1().then((rust1) => {
-  rust1.greet("World1"); // Call the exported function from the Rust crate
+  rust1.greet("World1");
 });
 
 initializeRust2().then((rust2) => {
   rust2.greet("World2");
 });
-
 ```
 
-### Configuration Options
+---
 
-- `crates` (array): An array of objects representing the Rust crates you want to compile. Each object should have the following properties:
-  - `path` (string): The path to your Rust crate or project. This is typically the folder containing `Cargo.toml`.
+## Configuration Options
 
-  - `target` (string): The WebAssembly target. [See all supported targets in the wasm-pack documentation](https://rustwasm.github.io/wasm-pack/book/commands/build.html#target).
+### `crates` (required)
 
-  - `profileOnDev` ("dev"| "profiling" | "release"): The profile to use when building the crate in development mode. This is optional and defaults to `dev`.
+An array of objects representing the Rust crates you want to compile. Each object should have the following properties:
 
-  - `profileOnProd` ("dev"| "profiling" | "release"): The profile to use when building the crate in production mode. This is optional and defaults to `dev`.
+- `path` (string): The path to your Rust crate or project. This is typically the folder containing `Cargo.toml`.
 
-- `wasmpackPath` (string): The path to the wasm-pack executable. This is optional and defaults to `~/.cargo/bin/wasm-pack`.
+- `target` ("web" | "nodejs" | "deno"): The WebAssembly target.
+-
+- `profileOnDev` ("dev"| "profiling" | "release"): The profile to use when building the crate in development mode. This is optional and defaults to `dev`.
+
+- `profileOnProd` ("dev"| "profiling" | "release"): The profile to use when building the crate in production mode. This is optional and defaults to `release`.
+
+---
+
+### `wasmpackPath` (optional)
+
+Custom path to the `wasm-pack` binary.
+Defaults to the standard Cargo bin path (`~/.cargo/bin/wasm-pack`).
+
+---
+
+### `pkgsDir` (optional)
+
+The directory where compiled Wasm output will be written.
+Defaults to `"pkgs"`.
+
+---
+
+### `aliasPkgDir` (optional)
+
+If enabled (`true` by default), the plugin will:
+
+- Create an alias mapping `@pkgs` to the `pkgsDir`
+- Attempt to update your `tsconfig.json` with the following path:
+
+```json
+{
+  "compilerOptions": {
+    "paths": {
+      "@pkgs/*": ["./pkgs/*"]
+    }
+  }
+}
+```
+
+> ⚠️ You may need to manually verify this mapping if automatic insertion fails.
+
+---
+
+### `autoInstallWasmPack` (optional)
+
+If `true`, the plugin will install `wasm-pack` via Cargo if it's not found in your system.
+
+---
+
+### `autoInstallRust` (optional)
+
+Configure how the Rust toolchain should be handled.
