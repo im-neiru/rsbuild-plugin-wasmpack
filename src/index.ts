@@ -58,6 +58,7 @@ export const pluginWasmPack = (
         {
           crates: options.crates,
           wasmPackPath,
+          devMode: api.context.action == "dev",
         },
       ]);
     });

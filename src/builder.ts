@@ -1,86 +1,106 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Compiler } from "@rspack/core";
-import { sync as runSync } from "cross-spawn";
+import chokidar from "chokidar";
+import { execa } from "execa";
 import { load as loadToml } from "js-toml";
 import type { CrateTarget, ProfileType } from "./options.js";
 
 export class WasmPackPlugin {
   private crates: NonNullable<ReturnType<typeof readCrateTomls>>;
   private wasmPackPath: string;
+  private devMode: boolean;
 
-  constructor(options: { crates: CrateTarget[]; wasmPackPath: string }) {
+  constructor(options: {
+    crates: CrateTarget[];
+    wasmPackPath: string;
+    devMode: boolean;
+  }) {
     this.crates = readCrateTomls(options.crates)!;
     this.wasmPackPath = options.wasmPackPath;
+    this.devMode = options.devMode;
   }
 
   apply(compiler: Compiler): void {
-    compiler.hooks.beforeCompile.tapPromise("wasmpack", async () => {
-      Promise.all(
-        this.crates.map((crate) =>
-          buildCrate(
-            this.wasmPackPath,
-            crate.path,
-            crate.output,
-            crate.target,
-            crate.profileOnDev ?? "dev"
-          )
-        )
+    if (this.devMode) {
+      const watcher = chokidar.watch(
+        this.crates.map((crate) => path.join(crate.path, "src")),
+        {
+          ignoreInitial: true,
+          usePolling: false,
+        }
       );
-    });
 
-    compiler.hooks.watchRun.tapPromise("wasmpack", async (comp) => {
-      const changedFiles = comp.modifiedFiles ?? new Set<string>();
+      watcher.on("all", async (event, filePath) => {
+        const crate = this.crates.find((c) => filePath.startsWith(c.path));
+        if (!crate) return;
 
-      for (const crate of this.crates) {
-        const crateSrcPath = path.join(crate.path, "src");
-        const affected = [...changedFiles].some((f) =>
-          f.startsWith(crateSrcPath)
-        );
-        if (affected) {
-          console.info(`[rsbuild:wasmpack] Rebuilding ${crate.name}`);
-          buildCrate(
+        console.info(`[rsbuild:wasmpack] ${event} → ${filePath}`);
+        try {
+          await buildCrate(
             this.wasmPackPath,
             crate.path,
             crate.output,
             crate.target,
             crate.profileOnDev ?? "dev"
           );
+        } catch (err) {
+          console.error(
+            `[rsbuild:wasmpack] Failed to build ${crate.name}:`,
+            err
+          );
         }
-      }
+      });
+    }
+
+    compiler.hooks.beforeCompile.tapPromise("wasmpack", async () => {
+      await Promise.all(
+        this.crates.map((crate) =>
+          buildCrate(
+            this.wasmPackPath,
+            crate.path,
+            crate.output,
+            crate.target,
+            this.devMode
+              ? crate.profileOnDev ?? "dev"
+              : crate.profileOnProd ?? "release"
+          )
+        )
+      );
     });
   }
 }
 
-function buildCrate(
+async function buildCrate(
   wasmPackPath: string,
   cratePath: string,
   outputPath: string,
   target: CrateTarget["target"],
   profile: ProfileType
-): void {
-  const result = runSync(
-    wasmPackPath,
-    ["build", "--out-dir", outputPath, "--target", target, `--${profile}`],
-    {
-      stdio: "inherit",
-      cwd: cratePath,
-      env: {
-        ...Object.fromEntries(
-          Object.entries(process.env).filter(([key]) => key !== "RUST_LOG")
-        ),
-        PATH: `${process.env.PATH}:${path.resolve(
-          process.env.HOME || "",
-          ".cargo/bin"
-        )}`,
-      },
-    }
-  );
-
-  if (result.error)
-    throw new Error(`wasm-pack failed: ${result.error.message}`);
-  if (result.status !== 0)
-    throw new Error(`wasm-pack exited with status ${result.status}`);
+): Promise<void> {
+  try {
+    await execa(
+      wasmPackPath,
+      ["build", "--out-dir", outputPath, "--target", target, `--${profile}`],
+      {
+        cwd: cratePath,
+        stdio: "inherit",
+        env: {
+          ...Object.fromEntries(
+            Object.entries(process.env).filter(([key]) => key !== "RUST_LOG")
+          ),
+          PATH: `${process.env.PATH}:${path.resolve(
+            process.env.HOME || "",
+            ".cargo/bin"
+          )}`,
+        },
+      }
+    );
+  } catch (error) {
+    throw new Error(
+      `wasm-pack failed for ${cratePath}: ${(error as Error).message}`
+    );
+  }
 }
 
 function readCrateTomls(crates: CrateTarget[]) {
