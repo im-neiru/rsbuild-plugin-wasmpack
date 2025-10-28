@@ -4,7 +4,7 @@
 [![downloads](https://img.shields.io/npm/dt/rsbuild-plugin-wasmpack?style=flat-square&colorA=DEA584&colorB=5E4CEF)](https://www.npmjs.com/package/rsbuild-plugin-wasmpack)
 [![license](https://img.shields.io/github/license/nshen/vite-plugin-wasm-pack?style=flat-square&colorA=DEA584&colorB=5E4CEF)](./LICENSE)
 
-`rsbuild-plugin-wasmpack` is a plugin for [Rsbuild](https://rsbuild.dev/) that enables you to compile Rust crates into WebAssembly (Wasm) using [`wasm-pack`](https://rustwasm.github.io/wasm-pack/). It simplifies integration of Rust code into web applications with support for hot-reloading, crate aliasing, and automatic Rust toolchain management.
+`rsbuild-plugin-wasmpack` is a plugin for [Rsbuild](https://rsbuild.dev/) that enables you to compile Rust crates into WebAssembly (Wasm) using [`wasm-pack`](https://drager.github.io/wasm-pack/). It simplifies integration of Rust code into web applications with support for hot-reloading, crate aliasing, and automatic Rust toolchain management.
 
 ---
 
@@ -44,7 +44,7 @@ The demo above showcases live reloading of compiled WebAssembly as Rust code is 
 
 Ensure the following are available in your environment:
 
-- [`wasm-pack`](https://rustwasm.github.io/wasm-pack/installer/)
+- [`wasm-pack`](https://drager.github.io/wasm-pack/installer/)
 
   ```bash
   cargo install wasm-pack
@@ -111,9 +111,9 @@ export default defineConfig({
           profileOnProd: "release",
         },
       ],
-      wasmpackPath: "~/.cargo/bin/wasm-pack", // Optional
-      pkgsDir: "pkgs",                        // Optional: default is "pkgs"
-      aliasPkgDir: true,                      // Optional: default is true
+      wasmpackPath: "~/.cargo/bin/wasm-pack", // Optional (this can be loaded from envfile)
+      pkgsDir: "pkgs",                        // Optional (default is "pkgs")
+      aliasPkgDir: true,                      // Optional (default is true)
       autoInstallWasmPack: true,              // Optional
 
       // Optional Rust auto-install setup
