@@ -121,8 +121,8 @@ export default defineConfig({
       rustToolchainOptions: {
         defaultToolchain: "stable",
         profile: "minimal",
-        components: new Set(["clippy"]),
-        targets: new Set(["wasm32-unknown-unknown"]),
+        components: ["clippy"],
+        targets: ["wasm32-unknown-unknown"],
       },
     }),
   ],
