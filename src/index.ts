@@ -27,12 +27,16 @@ export const pluginWasmPack = (
         );
       }
 
-      const pkgsDirStat = fs.statSync(options.pkgsDir);
+      if (fs.existsSync(options.pkgsDir)) {
+        const pkgsDirStat = fs.statSync(options.pkgsDir);
 
-      if (pkgsDirStat.isFile()) {
-        throw new Error(
-          "Invalid `pkgsDir`. Make sure it is an empty directory and not a file."
-        );
+        if (pkgsDirStat.isFile()) {
+          throw new Error(
+            "Invalid `pkgsDir`. Make sure it is an empty directory and not a file."
+          );
+        }
+      } else {
+        fs.mkdirSync(options.pkgsDir);
       }
     }
 
