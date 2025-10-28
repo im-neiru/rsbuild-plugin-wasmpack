@@ -7,6 +7,9 @@
 		"url": "git+https://github.com/im-neiru/rsbuild-plugin-wasmpack.git"
 	},
 	"type": "module",
+	"imports": {
+		"#/*": "./src/*"
+	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
