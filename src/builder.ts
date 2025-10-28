@@ -90,6 +90,18 @@ async function buildCrate(
   target: CrateTarget["target"],
   profile: ProfileType
 ): Promise<void> {
+  {
+    const cargoTomlPath = path.join(cratePath, "Cargo.toml");
+
+    if (!fs.existsSync(cargoTomlPath) || !fs.statSync(cargoTomlPath).isFile()) {
+      const crateName = path.basename(cratePath);
+      throw new Error(
+        `No Cargo.toml found in "${cratePath}". ` +
+          `Run "wasm-pack new ${crateName}" to create a new crate.`
+      );
+    }
+  }
+
   try {
     await execa(
       wasmPackPath,
