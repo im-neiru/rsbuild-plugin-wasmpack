@@ -24,7 +24,7 @@ export class RustInstaller {
     }
 
     if (!options?.targets) {
-      options.targets = new Set(["wasm32-unknown-unknown"]);
+      options.targets = ["wasm32-unknown-unknown"];
     }
 
     const rustUpdateRoot =
@@ -160,13 +160,17 @@ export class RustInstaller {
     }
 
     // --component rustfmt,clippy,...
-    if (options.components && options.components.size > 0) {
-      args.push("--component", Array.from(options.components).join(","));
+    const components = new Set(options.components);
+
+    if (components && components.size > 0) {
+      args.push("--component", Array.from(components).join(","));
     }
 
     // --target wasm32-unknown-unknown,...
-    if (options.targets && options.targets.size > 0) {
-      args.push("--target", Array.from(options.targets).join(","));
+    const targets = new Set(options.targets);
+
+    if (targets && targets.size > 0) {
+      args.push("--target", Array.from(targets).join(","));
     }
 
     return args;

@@ -1,9 +1,15 @@
 {
 	"name": "rsbuild-plugin-wasmpack",
-	"version": "0.0.4",
+	"version": "0.1.0",
 	"description": "A plugin for rsbuild to compile Rust crates to WebAssembly using wasm-pack",
-	"repository": "https://github.com/im-neiru/rsbuild-plugin-wasmpack",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/im-neiru/rsbuild-plugin-wasmpack.git"
+	},
 	"type": "module",
+	"imports": {
+		"#/*": "./src/*"
+	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -38,7 +44,7 @@
 		"@biomejs/biome": "2.1.3",
 		"@playwright/test": "1.54.2",
 		"@rsbuild/core": "1.4.13",
-		"@rslib/core": "0.11.1",
+		"@rslib/core": "0.16.1",
 		"@types/cross-spawn": "^6.0.6",
 		"@types/node": "^24.1.0",
 		"playwright": "1.54.2"

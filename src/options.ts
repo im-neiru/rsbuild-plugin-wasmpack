@@ -36,7 +36,7 @@ export type PluginWasmPackOptions = {
       /**
        * If set to false, the plugin will not attempt to install the Rust toolchain.
        */
-      autoInstallRust: false | null | undefined;
+      autoInstallRust?: false | null | undefined;
     }
   | {
       /**
@@ -105,15 +105,17 @@ export type RustInstallerOptions = {
   /**
    * Additional Rust components to install alongside the toolchain.
    */
-  components?: Set<"rustfmt" | "clippy" | "rust-docs" | "llvm-tools-preview">;
+  components?: RustComponents[];
 
   /**
    * Additional target architectures to install.
    */
-  targets?: Set<
-    | "wasm32-unknown-unknown"
-    | "x86_64-pc-windows-gnu"
-    | "aarch64-apple-darwin"
-    | "armv7-unknown-linux-gnueabihf"
-  >;
+  targets?: RustTargets[];
 };
+
+type RustComponents = "rustfmt" | "clippy" | "rust-docs" | "llvm-tools-preview";
+type RustTargets =
+  | "wasm32-unknown-unknown"
+  | "x86_64-pc-windows-gnu"
+  | "aarch64-apple-darwin"
+  | "armv7-unknown-linux-gnueabihf";

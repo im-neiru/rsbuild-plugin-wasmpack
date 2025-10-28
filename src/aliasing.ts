@@ -26,13 +26,6 @@ export function aliasTsconfig(
   json.compilerOptions.paths ??= {};
   const paths = json.compilerOptions.paths;
 
-  if (oldAlias) {
-    const oldKey = `${oldAlias}/*`;
-    if (paths[oldKey]) {
-      delete paths[oldKey];
-    }
-  }
-
   const aliasKey = `${alias}/*`;
 
   const relativePath =
@@ -41,6 +34,23 @@ export function aliasTsconfig(
       : `./${pkgsDir}`;
 
   const aliasValue = [`${relativePath}/*`];
+
+  const currentValue = paths[aliasKey];
+  const isAlreadyAliased =
+    Array.isArray(currentValue) &&
+    currentValue.length === 1 &&
+    currentValue[0] === aliasValue[0];
+
+  if (isAlreadyAliased) {
+    return;
+  }
+
+  if (oldAlias) {
+    const oldKey = `${oldAlias}/*`;
+    if (paths[oldKey]) {
+      delete paths[oldKey];
+    }
+  }
 
   paths[aliasKey] = aliasValue;
 
