@@ -36,7 +36,7 @@ export type PluginWasmPackOptions = {
       /**
        * If set to false, the plugin will not attempt to install the Rust toolchain.
        */
-      autoInstallRust: false | null | undefined;
+      autoInstallRust?: false | null | undefined;
     }
   | {
       /**
