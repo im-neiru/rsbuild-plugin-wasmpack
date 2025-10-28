@@ -68,7 +68,7 @@ export async function buildCrates(
 ) {
   const crates = readCrateTomls(options.pkgsDir ?? "pkgs", options.crates)!;
 
-  await Promise.all(
+  const results = await Promise.allSettled(
     crates.map((crate) =>
       buildCrate(
         wasmPackPath,
@@ -80,7 +80,27 @@ export async function buildCrates(
     )
   );
 
-  await Promise.all(crates.map((crate) => stripWasmIn(logger, crate.output)));
+  for (const [i, result] of results.entries()) {
+    const crate = crates[i];
+    const name = path.basename(crate.path);
+
+    if (result.status === "rejected") {
+      logger.error(
+        `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `❌ Build failed: ${name}\n` +
+          `${result.reason.message}\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+      );
+    } else {
+      logger.info(`✅ Successfully built: ${name}`);
+    }
+  }
+
+  await Promise.all(
+    crates
+      .filter((_, i) => results[i].status === "fulfilled")
+      .map((crate) => stripWasmIn(logger, crate.output))
+  );
 }
 
 async function buildCrate(
