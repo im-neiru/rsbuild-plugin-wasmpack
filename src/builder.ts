@@ -18,7 +18,11 @@ export function watchCrates(
   wasmPackPath: string,
   reload: () => void
 ) {
-  const crates = readCrateTomls(options.pkgsDir ?? "pkgs", options.crates)!;
+  const crates = readCrateTomls(
+    options.pkgsDir ?? "pkgs",
+    options.crates,
+    logger
+  )!;
 
   const watcher = chokidar.watch(
     crates.map((crate) => path.join(crate.path, "src")),
@@ -66,7 +70,11 @@ export async function buildCrates(
   wasmPackPath: string,
   devMode: boolean
 ) {
-  const crates = readCrateTomls(options.pkgsDir ?? "pkgs", options.crates)!;
+  const crates = readCrateTomls(
+    options.pkgsDir ?? "pkgs",
+    options.crates,
+    logger
+  )!;
 
   const results = await Promise.allSettled(
     crates.map((crate) =>
@@ -110,18 +118,6 @@ async function buildCrate(
   target: CrateTarget["target"],
   profile: ProfileType
 ): Promise<void> {
-  {
-    const cargoTomlPath = path.join(cratePath, "Cargo.toml");
-
-    if (!fs.existsSync(cargoTomlPath) || !fs.statSync(cargoTomlPath).isFile()) {
-      const crateName = path.basename(cratePath);
-      throw new Error(
-        `No Cargo.toml found in "${cratePath}". ` +
-          `Run "wasm-pack new ${crateName}" to create a new crate.`
-      );
-    }
-  }
-
   try {
     await execa(
       wasmPackPath,
@@ -147,13 +143,38 @@ async function buildCrate(
   }
 }
 
-function readCrateTomls(pkgsDir: string, crates: CrateTarget[]) {
+function readCrateTomls(
+  pkgsDir: string,
+  crates: CrateTarget[],
+  logger: Logger
+) {
   const result: (CrateTarget & { output: string; name: string })[] = [];
 
   for (const crate of crates) {
     const fullPath = path.resolve(crate.path);
+    const cargoTomlPath = path.join(fullPath, "Cargo.toml");
+
+    if (
+      !fs.existsSync(fullPath) ||
+      !fs.statSync(fullPath).isDirectory() ||
+      !fs.existsSync(cargoTomlPath) ||
+      !fs.statSync(cargoTomlPath).isFile()
+    ) {
+      const crateName = path.basename(fullPath);
+
+      logger.error(
+        `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `❌ Invalid Rust crate at "${fullPath}". ` +
+          `Make sure the directory exists and contains a Cargo.toml file.\n` +
+          `You can create one with: wasm-pack new ${crateName}\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+      );
+
+      throw new Error();
+    }
+
     const cargoToml = loadToml(
-      fs.readFileSync(path.join(fullPath, "Cargo.toml"), "utf-8")
+      fs.readFileSync(cargoTomlPath, "utf-8")
     ) as CargoToml;
 
     if (!cargoToml?.package?.name) {
