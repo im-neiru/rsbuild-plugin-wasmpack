@@ -78,6 +78,16 @@ export type CrateTarget = {
    * Build profile to use in production mode (defaults to `"release"`).
    */
   profileOnProd?: ProfileType;
+
+  /**
+   * Profiles for which the output `.wasm` binary should be stripped using wabt
+   *
+   * Example:
+   *   stripBinary: ["release"]
+   *
+   * Defaults to none.
+   */
+  stripWasm?: ProfileType[];
 };
 
 /**
