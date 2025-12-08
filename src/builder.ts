@@ -45,16 +45,22 @@ export function watchCrates(
 
     logger.info(`[rsbuild:wasmpack] ${event} → ${filePath}`);
 
+    const profile = crate.profileOnDev ?? "dev";
     try {
       await buildCrate(
         wasmPackPath,
         crate.path,
         crate.output,
         crate.target,
-        crate.profileOnDev ?? "dev"
+        profile
       );
 
-      stripWasmIn(logger, crate.output);
+      const stripWasm = crate.stripWasm?.includes(profile) ?? false;
+
+      if (stripWasm) {
+        stripWasmIn(logger, crate.output);
+      }
+
       reload();
     } catch (err) {
       logger.error(`[rsbuild:wasmpack] Failed to build ${crate.name}:`, err);
@@ -77,15 +83,19 @@ export async function buildCrates(
   )!;
 
   const results = await Promise.allSettled(
-    crates.map((crate) =>
-      buildCrate(
-        wasmPackPath,
-        crate.path,
-        crate.output,
-        crate.target,
-        devMode ? crate.profileOnDev ?? "dev" : crate.profileOnProd ?? "release"
-      )
-    )
+    crates.map((crate) => {
+      return [
+        buildCrate(
+          wasmPackPath,
+          crate.path,
+          crate.output,
+          crate.target,
+          devMode
+            ? crate.profileOnDev ?? "dev"
+            : crate.profileOnProd ?? "release"
+        ),
+      ];
+    })
   );
 
   for (const [i, result] of results.entries()) {
@@ -107,7 +117,17 @@ export async function buildCrates(
   await Promise.all(
     crates
       .filter((_, i) => results[i].status === "fulfilled")
-      .map((crate) => stripWasmIn(logger, crate.output))
+      .map((crate) => {
+        let profile = devMode
+          ? crate.profileOnDev ?? "dev"
+          : crate.profileOnProd ?? "release";
+
+        const stripWasm = crate.stripWasm?.includes(profile) ?? false;
+
+        if (stripWasm) {
+          stripWasmIn(logger, crate.output);
+        }
+      })
   );
 }
 
