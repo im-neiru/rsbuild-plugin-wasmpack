@@ -45,7 +45,7 @@ The demo above showcases live reloading of compiled WebAssembly as Rust code is 
 Ensure the following are available in your environment:
 
 - [`wasm-pack`](https://drager.github.io/wasm-pack/installer/)
-
+  
   ```bash
   cargo install wasm-pack
   ```
@@ -163,10 +163,14 @@ An array of objects representing the Rust crates you want to compile. Each objec
 - `path` (string): The path to your Rust crate or project. This is typically the folder containing `Cargo.toml`.
 
 - `target` ("web" | "nodejs" | "deno"): The WebAssembly target.
--
+
+- 
+
 - `profileOnDev` ("dev"| "profiling" | "release"): The profile to use when building the crate in development mode. This is optional and defaults to `dev`.
 
 - `profileOnProd` ("dev"| "profiling" | "release"): The profile to use when building the crate in production mode. This is optional and defaults to `release`.
+
+- `stripWasm` Profiles for which the output `.wasm` binary should be stripped using wabt. Example: `stripBinary: ["release"]`
 
 ---
 
