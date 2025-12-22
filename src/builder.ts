@@ -92,7 +92,9 @@ export async function buildCrates(
           crate.target,
           devMode
             ? crate.profileOnDev ?? "dev"
-            : crate.profileOnProd ?? "release"
+            : crate.profileOnProd ?? "release",
+          crate.features,
+          crate.defaultFeatures
         ),
       ];
     })
@@ -105,9 +107,9 @@ export async function buildCrates(
     if (result.status === "rejected") {
       logger.error(
         `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `❌ Build failed: ${name}\n` +
-          `${result.reason.message}\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+        `❌ Build failed: ${name}\n` +
+        `${result.reason.message}\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
       );
     } else {
       logger.info(`✅ Successfully built: ${name}`);
@@ -136,12 +138,21 @@ async function buildCrate(
   cratePath: string,
   outputPath: string,
   target: CrateTarget["target"],
-  profile: ProfileType
+  profile: ProfileType,
+  features?: string[],
+  defaultFeatures?: boolean
 ): Promise<void> {
+  const args = ["build", "--out-dir", outputPath, "--target", target, `--${profile}`];
+
+  if (features)
+    features.forEach(feature => { args.push("--features"); args.push(feature) });
+  if (defaultFeatures === false)
+    args.push("--no-default-features");
+
   try {
     await execa(
       wasmPackPath,
-      ["build", "--out-dir", outputPath, "--target", target, `--${profile}`],
+      args,
       {
         cwd: cratePath,
         stdio: "inherit",
@@ -184,10 +195,10 @@ function readCrateTomls(
 
       logger.error(
         `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `❌ Invalid Rust crate at "${fullPath}". ` +
-          `Make sure the directory exists and contains a Cargo.toml file.\n` +
-          `You can create one with: wasm-pack new ${crateName}\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+        `❌ Invalid Rust crate at "${fullPath}". ` +
+        `Make sure the directory exists and contains a Cargo.toml file.\n` +
+        `You can create one with: wasm-pack new ${crateName}\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
       );
 
       throw new Error();

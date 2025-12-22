@@ -80,7 +80,7 @@ export type CrateTarget = {
   profileOnProd?: ProfileType;
 
   /**
-   * Profiles for which the output `.wasm` binary should be stripped using wabt
+   * Profiles for which the output `.wasm` binary should be stripped using wabt.
    *
    * Example:
    *   stripBinary: ["release"]
@@ -88,6 +88,27 @@ export type CrateTarget = {
    * Defaults to none.
    */
   stripWasm?: ProfileType[];
+
+  /**
+   * Features the crate is built with.
+   *
+   * Example:
+   *   features: ["serde"]
+   *
+   * Defaults to none.
+   */
+  features?: string[];
+
+  
+  /**
+   * Whether to build the crate with the default features enabled.
+   *
+   * Example:
+   *   defaultFeatures: false
+   *
+   * Defaults to none.
+   */
+  defaultFeatures?: boolean;
 };
 
 /**
