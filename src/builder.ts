@@ -83,21 +83,19 @@ export async function buildCrates(
   )!;
 
   const results = await Promise.allSettled(
-    crates.map((crate) => {
-      return [
-        buildCrate(
-          wasmPackPath,
-          crate.path,
-          crate.output,
-          crate.target,
-          devMode
-            ? crate.profileOnDev ?? "dev"
-            : crate.profileOnProd ?? "release",
-          crate.features,
-          crate.defaultFeatures
-        ),
-      ];
-    })
+    crates.map((crate) =>
+      buildCrate(
+        wasmPackPath,
+        crate.path,
+        crate.output,
+        crate.target,
+        devMode
+          ? crate.profileOnDev ?? "dev"
+          : crate.profileOnProd ?? "release",
+        crate.features,
+        crate.defaultFeatures
+      ),
+    )
   );
 
   for (const [i, result] of results.entries()) {
