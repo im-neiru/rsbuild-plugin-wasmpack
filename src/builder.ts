@@ -12,10 +12,13 @@ import type {
   ProfileType,
 } from "./options.js";
 
+export type Mutex = { ready: Promise<void> };
+
 export function watchCrates(
   logger: Logger,
   options: PluginWasmPackOptions,
   wasmPackPath: string,
+  mutex: Mutex,
   reload: () => void
 ) {
   const crates = readCrateTomls(
@@ -46,6 +49,10 @@ export function watchCrates(
     logger.info(`[rsbuild:wasmpack] ${event} → ${filePath}`);
 
     const profile = crate.profileOnDev ?? "dev";
+
+    const { promise, resolve, reject } = Promise.withResolvers<void>();
+    mutex.ready = promise;
+
     try {
       await buildCrate(
         wasmPackPath,
@@ -63,9 +70,11 @@ export function watchCrates(
         stripWasmIn(logger, crate.output);
       }
 
+      resolve();
       reload();
     } catch (err) {
       logger.error(`[rsbuild:wasmpack] Failed to build ${crate.name}:`, err);
+      reject(err);
     }
   });
 
