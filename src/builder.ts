@@ -52,7 +52,9 @@ export function watchCrates(
         crate.path,
         crate.output,
         crate.target,
-        profile
+        profile,
+        crate.features,
+        crate.defaultFeatures
       );
 
       const stripWasm = crate.stripWasm?.includes(profile) ?? false;
