@@ -50,7 +50,7 @@ export function watchCrates(
 
     const profile = crate.profileOnDev ?? "dev";
 
-    const { promise, resolve, reject } = Promise.withResolvers<void>();
+    const { promise, resolve } = Promise.withResolvers<void>();
     mutex.ready = promise;
 
     try {
@@ -74,7 +74,6 @@ export function watchCrates(
       reload();
     } catch (err) {
       logger.error(`[rsbuild:wasmpack] Failed to build ${crate.name}:`, err);
-      reject(err);
     }
   });
 
