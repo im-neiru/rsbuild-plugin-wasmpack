@@ -18,8 +18,7 @@ export function watchCrates(
   logger: Logger,
   options: PluginWasmPackOptions,
   wasmPackPath: string,
-  mutex: Mutex,
-  reload: () => void
+  mutex: Mutex
 ) {
   const crates = readCrateTomls(
     options.pkgsDir ?? "pkgs",
@@ -71,7 +70,6 @@ export function watchCrates(
       }
 
       resolve();
-      reload();
     } catch (err) {
       logger.error(`[rsbuild:wasmpack] Failed to build ${crate.name}:`, err);
     }

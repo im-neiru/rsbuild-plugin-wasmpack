@@ -90,12 +90,10 @@ export const pluginWasmPack = (
       await wasmPackMutex.ready;
     });
 
-    api.onBeforeStartDevServer(async ({ server }) => {
+    api.onBeforeStartDevServer(async () => {
       await buildCrates(api.logger, options, wasmPackPath, true);
 
-      watcher = watchCrates(api.logger, options, wasmPackPath, wasmPackMutex, () => {
-        server.sockWrite("static-changed");
-      });
+      watcher = watchCrates(api.logger, options, wasmPackPath, wasmPackMutex);
     });
 
     api.onCloseDevServer(() => {
