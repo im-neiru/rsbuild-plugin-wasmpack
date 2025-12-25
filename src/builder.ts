@@ -69,9 +69,10 @@ export function watchCrates(
         stripWasmIn(logger, crate.output);
       }
 
-      resolve();
     } catch (err) {
       logger.error(`[rsbuild:wasmpack] Failed to build ${crate.name}:`, err);
+    } finally {
+      resolve();
     }
   });
 
