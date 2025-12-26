@@ -112,6 +112,13 @@ export type CrateTarget = {
    * Defaults to `true` (default features are enabled).
    */
   defaultFeatures?: boolean;
+
+  /**
+   * Whether this crate should enable live reload / HMR during development.
+   * If `true` changes to source files automatically trigger a rebuild and reload the page.
+   * Defaults to `true`.
+   */
+  liveReload?: boolean;
 };
 
 /**
