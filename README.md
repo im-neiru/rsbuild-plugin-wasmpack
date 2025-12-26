@@ -103,6 +103,7 @@ export default defineConfig({
         {
           path: "crate1",
           target: "web",
+          liveReload: false // Optional if false disable liveReload (defaults to true).
         },
         {
           path: "crate2",
@@ -177,6 +178,8 @@ An array of objects representing the Rust crates you want to compile. Each objec
 - `features` A list of Cargo features to explicitly enable when building the crate. This maps directly to `--features` flag. Example: `["serde", "simd", "unstable-api"]`.
 
 - `defaultFeatures` (`true` | `false`) Controls whether Cargo’s default features are enabled when building the crate. If false the `--no-default-features` flag will be passed.
+
+- `liveReload` (`true` | `false`) If `true` changes to source files automatically trigger a rebuild and reload the page. Defaults to `true`
 
 - `stripWasm` Profiles for which the output `.wasm` binary should be stripped using wabt. Example: `stripBinary: ["release"]`.
 

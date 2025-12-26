@@ -27,7 +27,9 @@ export function watchCrates(
   )!;
 
   const watcher = chokidar.watch(
-    crates.map((crate) => path.join(crate.path, "src")),
+    crates
+      .filter(({ liveReload = true }) => liveReload)
+      .map((crate) => path.join(crate.path, "src")),
     {
       ignoreInitial: true,
       usePolling: false,
@@ -68,7 +70,6 @@ export function watchCrates(
       if (stripWasm) {
         stripWasmIn(logger, crate.output);
       }
-
     } catch (err) {
       logger.error(`[rsbuild:wasmpack] Failed to build ${crate.name}:`, err);
     } finally {
@@ -103,7 +104,7 @@ export async function buildCrates(
           : crate.profileOnProd ?? "release",
         crate.features,
         crate.defaultFeatures
-      ),
+      )
     )
   );
 
@@ -114,9 +115,9 @@ export async function buildCrates(
     if (result.status === "rejected") {
       logger.error(
         `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `❌ Build failed: ${name}\n` +
-        `${result.reason.message}\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+          `❌ Build failed: ${name}\n` +
+          `${result.reason.message}\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
       );
     } else {
       logger.info(`✅ Successfully built: ${name}`);
@@ -149,31 +150,36 @@ async function buildCrate(
   features?: string[],
   defaultFeatures?: boolean
 ): Promise<void> {
-  const args = ["build", "--out-dir", outputPath, "--target", target, `--${profile}`];
+  const args = [
+    "build",
+    "--out-dir",
+    outputPath,
+    "--target",
+    target,
+    `--${profile}`,
+  ];
 
   if (features)
-    features.forEach(feature => { args.push("--features"); args.push(feature) });
-  if (defaultFeatures === false)
-    args.push("--no-default-features");
+    features.forEach((feature) => {
+      args.push("--features");
+      args.push(feature);
+    });
+  if (defaultFeatures === false) args.push("--no-default-features");
 
   try {
-    await execa(
-      wasmPackPath,
-      args,
-      {
-        cwd: cratePath,
-        stdio: "inherit",
-        env: {
-          ...Object.fromEntries(
-            Object.entries(process.env).filter(([key]) => key !== "RUST_LOG")
-          ),
-          PATH: `${process.env.PATH}:${path.resolve(
-            process.env.HOME || "",
-            ".cargo/bin"
-          )}`,
-        },
-      }
-    );
+    await execa(wasmPackPath, args, {
+      cwd: cratePath,
+      stdio: "inherit",
+      env: {
+        ...Object.fromEntries(
+          Object.entries(process.env).filter(([key]) => key !== "RUST_LOG")
+        ),
+        PATH: `${process.env.PATH}:${path.resolve(
+          process.env.HOME || "",
+          ".cargo/bin"
+        )}`,
+      },
+    });
   } catch (error) {
     throw new Error(
       `wasm-pack failed for ${cratePath}: ${(error as Error).message}`
@@ -202,10 +208,10 @@ function readCrateTomls(
 
       logger.error(
         `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `❌ Invalid Rust crate at "${fullPath}". ` +
-        `Make sure the directory exists and contains a Cargo.toml file.\n` +
-        `You can create one with: wasm-pack new ${crateName}\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+          `❌ Invalid Rust crate at "${fullPath}". ` +
+          `Make sure the directory exists and contains a Cargo.toml file.\n` +
+          `You can create one with: wasm-pack new ${crateName}\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
       );
 
       throw new Error();
