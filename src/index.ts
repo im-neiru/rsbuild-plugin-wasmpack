@@ -13,6 +13,8 @@ import { buildCrates, Mutex, watchCrates } from "./builder.js";
 import type { PluginWasmPackOptions } from "./options.js";
 import { detectCargoBin, RustInstaller } from "./rust-installer.js";
 
+export { getOptionsFromEnvOrCli } from "./helper.js";
+
 let watcher: ReturnType<typeof watchCrates> | null = null;
 
 export const pluginWasmPack = (
