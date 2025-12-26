@@ -90,23 +90,26 @@ export type CrateTarget = {
   stripWasm?: ProfileType[];
 
   /**
-   * Features the crate is built with.
+   * List features to enable when building the crate.
+   *
+   * This maps directly to Cargo's `--features` flag.
    *
    * Example:
-   *   features: ["serde"]
+   *   features: ["serde", "simd"]
    *
-   * Defaults to none.
+   * Defaults to an empty array (no additional features enabled).
    */
   features?: string[];
 
-  
   /**
-   * Whether to build the crate with the default features enabled.
+   * Whether to enable default features when building the crate.
+   *
+   * If false the `--no-default-features` flag will be passed.
    *
    * Example:
    *   defaultFeatures: false
    *
-   * Defaults to none.
+   * Defaults to `true` (default features are enabled).
    */
   defaultFeatures?: boolean;
 };
