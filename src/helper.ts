@@ -3,11 +3,11 @@ import { PluginWasmPackOptions, CrateTarget } from "./options.js";
 type CrateOptionEntry<Key extends keyof CrateTarget> = {
   env?: {
     name: string;
-    map: (envValue?: string) => Required<CrateTarget>[Key];
+    map?: (envValue?: string) => Required<CrateTarget>[Key];
   };
   cli?: {
     name: string;
-    map: (argValue?: string) => Required<CrateTarget>[Key];
+    map?: (argValue?: string) => Required<CrateTarget>[Key];
   };
 };
 
@@ -46,13 +46,33 @@ export function getOptionsFromEnvOrCli<Opt extends PluginWasmPackOptions>(
         return {
           path,
           liveReload: liveReload
-            ? processField<"liveReload">(liveReload, env, cliArgs)
+            ? processField<"liveReload">(liveReload, env, cliArgs, (value) => {
+                if (value === "true" || value === "1") return true;
+                if (value === "false" || value === "0") return false;
+                return false;
+              })
             : undefined,
           features: features
-            ? processField<"features">(features, env, cliArgs)
+            ? processField<"features">(features, env, cliArgs, (value) => {
+                if (typeof value === "string") {
+                  return value
+                    .split(",")
+                    .map((v) => v.trim())
+                    .filter(Boolean);
+                }
+                return [];
+              })
             : undefined,
           defaultFeatures: defaultFeatures
-            ? processField<"defaultFeatures">(defaultFeatures, env, cliArgs)
+            ? processField<"defaultFeatures">(
+                defaultFeatures,
+                env,
+                cliArgs,
+                (value) => {
+                  if (value === "false" || value === "0") return false;
+                  return true;
+                }
+              )
             : undefined,
         } satisfies Pick<
           CrateTarget,
@@ -67,18 +87,33 @@ export function getOptionsFromEnvOrCli<Opt extends PluginWasmPackOptions>(
 function processField<Field extends keyof CrateOption>(
   params: CrateOptionEntry<Field>,
   env: NodeJS.ProcessEnv,
-  cliArgs?: Record<string, string>
+  cliArgs: Record<string, string> = {},
+  fallback: (value?: string) => Required<CrateTarget>[Field]
 ): Required<CrateTarget>[Field] {
-  if (params.cli?.name && cliArgs && cliArgs[params.cli.name] !== undefined) {
+  if (
+    params.cli?.map &&
+    params.cli?.name &&
+    cliArgs[params.cli.name] !== undefined
+  ) {
     return params.cli.map(cliArgs[params.cli.name]);
   }
 
-  if (params.env?.name && env[params.env.name] !== undefined) {
+  if (
+    params.env?.map &&
+    params.env?.name &&
+    env[params.env.name] !== undefined
+  ) {
     return params.env.map(env[params.env.name]);
   }
 
   if (params.cli?.map) return params.cli.map(undefined);
   if (params.env?.map) return params.env.map(undefined);
 
-  throw new Error("processField: no mapping function provided");
+  const rawValue = params.cli?.name
+    ? cliArgs[params.cli.name]
+    : params.env?.name
+    ? env[params.env.name]
+    : undefined;
+
+  return fallback(rawValue);
 }
