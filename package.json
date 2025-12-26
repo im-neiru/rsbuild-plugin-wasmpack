@@ -1,6 +1,6 @@
 {
 	"name": "rsbuild-plugin-wasmpack",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"description": "A plugin for rsbuild to compile Rust crates to WebAssembly using wasm-pack",
 	"repository": {
 		"type": "git",
