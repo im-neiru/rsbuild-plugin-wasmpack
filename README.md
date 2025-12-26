@@ -114,7 +114,7 @@ export default defineConfig({
         {
           path: "crate3",
           target: "web",
-          features: ["serde"] // Optional (defaults to none)
+          features: ["serde"], // Optional (defaults to none)
           defaultFeatures: false // Optional (defaults to true)
         },
       ],
