@@ -45,7 +45,7 @@ The demo above showcases live reloading of compiled WebAssembly as Rust code is 
 Ensure the following are available in your environment:
 
 - [`wasm-pack`](https://drager.github.io/wasm-pack/installer/)
-  
+
   ```bash
   cargo install wasm-pack
   ```
@@ -101,20 +101,27 @@ export default defineConfig({
     pluginWasmPack({
       crates: [
         {
-          path: "rust1",
+          path: "crate1",
           target: "web",
+          liveReload: false // Optional if false disable liveReload (defaults to true).
         },
         {
-          path: "rust2",
+          path: "crate2",
           target: "web",
           profileOnDev: "profiling",
           profileOnProd: "release",
         },
+        {
+          path: "crate3",
+          target: "web",
+          features: ["serde"], // Optional (defaults to none)
+          defaultFeatures: false // Optional (defaults to true)
+        },
       ],
       wasmpackPath: "~/.cargo/bin/wasm-pack", // Optional (this can be loaded from envfile)
-      pkgsDir: "pkgs",                        // Optional (default is "pkgs")
-      aliasPkgDir: true,                      // Optional (default is true)
-      autoInstallWasmPack: true,              // Optional
+      pkgsDir: "pkgs", // Optional (default is "pkgs")
+      aliasPkgDir: true, // Optional (default is true)
+      autoInstallWasmPack: true, // Optional
 
       // Optional Rust auto-install setup
       autoInstallRust: true,
@@ -164,13 +171,17 @@ An array of objects representing the Rust crates you want to compile. Each objec
 
 - `target` ("web" | "nodejs" | "deno"): The WebAssembly target.
 
-- 
-
 - `profileOnDev` ("dev"| "profiling" | "release"): The profile to use when building the crate in development mode. This is optional and defaults to `dev`.
 
 - `profileOnProd` ("dev"| "profiling" | "release"): The profile to use when building the crate in production mode. This is optional and defaults to `release`.
 
-- `stripWasm` Profiles for which the output `.wasm` binary should be stripped using wabt. Example: `stripBinary: ["release"]`
+- `features` A list of Cargo features to explicitly enable when building the crate. This maps directly to `--features` flag. Example: `["serde", "simd", "unstable-api"]`.
+
+- `defaultFeatures` (`true` | `false`) Controls whether Cargo’s default features are enabled when building the crate. If false the `--no-default-features` flag will be passed.
+
+- `liveReload` (`true` | `false`) If `true` changes to source files automatically trigger a rebuild and reload the page. Defaults to `true`
+
+- `stripWasm` Profiles for which the output `.wasm` binary should be stripped using wabt. Example: `stripBinary: ["release"]`.
 
 ---
 

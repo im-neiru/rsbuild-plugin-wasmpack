@@ -80,7 +80,7 @@ export type CrateTarget = {
   profileOnProd?: ProfileType;
 
   /**
-   * Profiles for which the output `.wasm` binary should be stripped using wabt
+   * Profiles for which the output `.wasm` binary should be stripped using wabt.
    *
    * Example:
    *   stripBinary: ["release"]
@@ -88,6 +88,37 @@ export type CrateTarget = {
    * Defaults to none.
    */
   stripWasm?: ProfileType[];
+
+  /**
+   * List features to enable when building the crate.
+   *
+   * This maps directly to Cargo's `--features` flag.
+   *
+   * Example:
+   *   features: ["serde", "simd"]
+   *
+   * Defaults to an empty array (no additional features enabled).
+   */
+  features?: string[];
+
+  /**
+   * Whether to enable default features when building the crate.
+   *
+   * If false the `--no-default-features` flag will be passed.
+   *
+   * Example:
+   *   defaultFeatures: false
+   *
+   * Defaults to `true` (default features are enabled).
+   */
+  defaultFeatures?: boolean;
+
+  /**
+   * Whether this crate should enable live reload / HMR during development.
+   * If `true` changes to source files automatically trigger a rebuild and reload the page.
+   * Defaults to `true`.
+   */
+  liveReload?: boolean;
 };
 
 /**

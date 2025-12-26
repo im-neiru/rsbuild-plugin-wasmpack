@@ -12,11 +12,13 @@ import type {
   ProfileType,
 } from "./options.js";
 
+export type Mutex = { ready: Promise<void> };
+
 export function watchCrates(
   logger: Logger,
   options: PluginWasmPackOptions,
   wasmPackPath: string,
-  reload: () => void
+  mutex: Mutex
 ) {
   const crates = readCrateTomls(
     options.pkgsDir ?? "pkgs",
@@ -25,7 +27,9 @@ export function watchCrates(
   )!;
 
   const watcher = chokidar.watch(
-    crates.map((crate) => path.join(crate.path, "src")),
+    crates
+      .filter(({ liveReload = true }) => liveReload)
+      .map((crate) => path.join(crate.path, "src")),
     {
       ignoreInitial: true,
       usePolling: false,
@@ -46,13 +50,19 @@ export function watchCrates(
     logger.info(`[rsbuild:wasmpack] ${event} → ${filePath}`);
 
     const profile = crate.profileOnDev ?? "dev";
+
+    const { promise, resolve } = Promise.withResolvers<void>();
+    mutex.ready = promise;
+
     try {
       await buildCrate(
         wasmPackPath,
         crate.path,
         crate.output,
         crate.target,
-        profile
+        profile,
+        crate.features,
+        crate.defaultFeatures
       );
 
       const stripWasm = crate.stripWasm?.includes(profile) ?? false;
@@ -60,10 +70,10 @@ export function watchCrates(
       if (stripWasm) {
         stripWasmIn(logger, crate.output);
       }
-
-      reload();
     } catch (err) {
       logger.error(`[rsbuild:wasmpack] Failed to build ${crate.name}:`, err);
+    } finally {
+      resolve();
     }
   });
 
@@ -83,19 +93,19 @@ export async function buildCrates(
   )!;
 
   const results = await Promise.allSettled(
-    crates.map((crate) => {
-      return [
-        buildCrate(
-          wasmPackPath,
-          crate.path,
-          crate.output,
-          crate.target,
-          devMode
-            ? crate.profileOnDev ?? "dev"
-            : crate.profileOnProd ?? "release"
-        ),
-      ];
-    })
+    crates.map((crate) =>
+      buildCrate(
+        wasmPackPath,
+        crate.path,
+        crate.output,
+        crate.target,
+        devMode
+          ? crate.profileOnDev ?? "dev"
+          : crate.profileOnProd ?? "release",
+        crate.features,
+        crate.defaultFeatures
+      )
+    )
   );
 
   for (const [i, result] of results.entries()) {
@@ -136,26 +146,40 @@ async function buildCrate(
   cratePath: string,
   outputPath: string,
   target: CrateTarget["target"],
-  profile: ProfileType
+  profile: ProfileType,
+  features?: string[],
+  defaultFeatures?: boolean
 ): Promise<void> {
+  const args = [
+    "build",
+    "--out-dir",
+    outputPath,
+    "--target",
+    target,
+    `--${profile}`,
+  ];
+
+  if (features)
+    features.forEach((feature) => {
+      args.push("--features");
+      args.push(feature);
+    });
+  if (defaultFeatures === false) args.push("--no-default-features");
+
   try {
-    await execa(
-      wasmPackPath,
-      ["build", "--out-dir", outputPath, "--target", target, `--${profile}`],
-      {
-        cwd: cratePath,
-        stdio: "inherit",
-        env: {
-          ...Object.fromEntries(
-            Object.entries(process.env).filter(([key]) => key !== "RUST_LOG")
-          ),
-          PATH: `${process.env.PATH}:${path.resolve(
-            process.env.HOME || "",
-            ".cargo/bin"
-          )}`,
-        },
-      }
-    );
+    await execa(wasmPackPath, args, {
+      cwd: cratePath,
+      stdio: "inherit",
+      env: {
+        ...Object.fromEntries(
+          Object.entries(process.env).filter(([key]) => key !== "RUST_LOG")
+        ),
+        PATH: `${process.env.PATH}:${path.resolve(
+          process.env.HOME || "",
+          ".cargo/bin"
+        )}`,
+      },
+    });
   } catch (error) {
     throw new Error(
       `wasm-pack failed for ${cratePath}: ${(error as Error).message}`

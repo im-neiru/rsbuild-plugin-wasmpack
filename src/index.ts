@@ -9,7 +9,7 @@ import {
   loadOldPkgsDir,
   saveOldPkgsDir,
 } from "./aliasing.js";
-import { buildCrates, watchCrates } from "./builder.js";
+import { buildCrates, Mutex, watchCrates } from "./builder.js";
 import type { PluginWasmPackOptions } from "./options.js";
 import { detectCargoBin, RustInstaller } from "./rust-installer.js";
 
@@ -80,16 +80,20 @@ export const pluginWasmPack = (
       }
     }
 
+    const wasmPackMutex: Mutex = { ready: Promise.resolve() };
+
     api.onBeforeBuild(async () => {
       await buildCrates(api.logger, options, wasmPackPath, false);
     });
 
-    api.onBeforeStartDevServer(async ({ server }) => {
+    api.onBeforeDevCompile(async () => {
+      await wasmPackMutex.ready;
+    });
+
+    api.onBeforeStartDevServer(async () => {
       await buildCrates(api.logger, options, wasmPackPath, true);
 
-      watcher = watchCrates(api.logger, options, wasmPackPath, () => {
-        server.sockWrite("static-changed");
-      });
+      watcher = watchCrates(api.logger, options, wasmPackPath, wasmPackMutex);
     });
 
     api.onCloseDevServer(() => {
