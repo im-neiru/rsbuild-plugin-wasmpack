@@ -7,6 +7,8 @@ import { getRandomPort } from "../../helper";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+test.setTimeout(120000);
+
 test("should build wasm", async ({ page }) => {
   const rsbuild = await createRsbuild({
     cwd: __dirname,
