@@ -3,7 +3,7 @@ import path from "node:path";
 import type { Logger } from "@rsbuild/core";
 import chokidar from "chokidar";
 import { execa } from "execa";
-import fsPromises from "fs/promises";
+import fsPromises from "node:fs/promises";
 import { load as loadToml } from "js-toml";
 import wabtFactory from "wabt";
 import type {
@@ -17,10 +17,12 @@ export type Mutex = { ready: Promise<void> };
 export function watchCrates(
   logger: Logger,
   options: PluginWasmPackOptions,
+  rootPath: string,
   wasmPackPath: string,
   mutex: Mutex
 ) {
   const crates = readCrateTomls(
+    rootPath,
     options.pkgsDir ?? "pkgs",
     options.crates,
     logger
@@ -51,7 +53,10 @@ export function watchCrates(
 
     const profile = crate.profileOnDev ?? "dev";
 
-    const { promise, resolve } = Promise.withResolvers<void>();
+    let resolveReady!: () => void;
+    const promise = new Promise<void>((resolve) => {
+      resolveReady = resolve;
+    });
     mutex.ready = promise;
 
     try {
@@ -73,7 +78,7 @@ export function watchCrates(
     } catch (err) {
       logger.error(`[rsbuild:wasmpack] Failed to build ${crate.name}:`, err);
     } finally {
-      resolve();
+      resolveReady();
     }
   });
 
@@ -83,10 +88,12 @@ export function watchCrates(
 export async function buildCrates(
   logger: Logger,
   options: PluginWasmPackOptions,
+  rootPath: string,
   wasmPackPath: string,
   devMode: boolean
 ) {
   const crates = readCrateTomls(
+    rootPath,
     options.pkgsDir ?? "pkgs",
     options.crates,
     logger
@@ -188,6 +195,7 @@ async function buildCrate(
 }
 
 function readCrateTomls(
+  rootPath: string,
   pkgsDir: string,
   crates: CrateTarget[],
   logger: Logger
@@ -195,7 +203,7 @@ function readCrateTomls(
   const result: (CrateTarget & { output: string; name: string })[] = [];
 
   for (const crate of crates) {
-    const fullPath = path.resolve(crate.path);
+    const fullPath = path.resolve(rootPath, crate.path);
     const cargoTomlPath = path.join(fullPath, "Cargo.toml");
 
     if (
@@ -228,7 +236,7 @@ function readCrateTomls(
     result.push({
       ...crate,
       path: fullPath,
-      output: path.resolve(pkgsDir, cargoToml.package.name),
+      output: path.resolve(rootPath, pkgsDir, cargoToml.package.name),
       name: cargoToml.package.name,
     });
   }

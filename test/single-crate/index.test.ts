@@ -15,10 +15,11 @@ test("should build wasm", async ({ page }) => {
         pluginWasmPack({
           crates: [
             {
-              path: "test/single-crate/rust",
+              path: "rust",
               target: "nodejs",
             },
           ],
+          aliasPkgDir: false,
         }),
       ],
       server: {

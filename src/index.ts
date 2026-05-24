@@ -6,20 +6,22 @@ import { sync as runSync } from "cross-spawn";
 import {
   aliasTsconfig,
   isValidUnscopedModuleName,
-  loadOldPkgsDir,
-  saveOldPkgsDir,
+  loadOldAlias,
+  saveOldAlias,
 } from "./aliasing.js";
 import { buildCrates, Mutex, watchCrates } from "./builder.js";
 import type { PluginWasmPackOptions } from "./options.js";
 import { detectCargoBin, RustInstaller } from "./rust-installer.js";
-
-let watcher: ReturnType<typeof watchCrates> | null = null;
 
 export const pluginWasmPack = (
   options: PluginWasmPackOptions
 ): RsbuildPlugin => ({
   name: "rsbuild:wasmpack",
   setup: async (api: RsbuildPluginAPI) => {
+    const rootPath = api.context.rootPath;
+    const pkgsDir = path.resolve(rootPath, options.pkgsDir ?? "pkgs");
+    let watcher: ReturnType<typeof watchCrates> | null = null;
+
     if (options.pkgsDir) {
       if (!isValidUnscopedModuleName(path.basename(options.pkgsDir))) {
         throw new Error(
@@ -27,8 +29,8 @@ export const pluginWasmPack = (
         );
       }
 
-      if (fs.existsSync(options.pkgsDir)) {
-        const pkgsDirStat = fs.statSync(options.pkgsDir);
+      if (fs.existsSync(pkgsDir)) {
+        const pkgsDirStat = fs.statSync(pkgsDir);
 
         if (pkgsDirStat.isFile()) {
           throw new Error(
@@ -36,7 +38,7 @@ export const pluginWasmPack = (
           );
         }
       } else {
-        fs.mkdirSync(options.pkgsDir);
+        fs.mkdirSync(pkgsDir, { recursive: true });
       }
     }
 
@@ -83,7 +85,7 @@ export const pluginWasmPack = (
     const wasmPackMutex: Mutex = { ready: Promise.resolve() };
 
     api.onBeforeBuild(async () => {
-      await buildCrates(api.logger, options, wasmPackPath, false);
+      await buildCrates(api.logger, options, rootPath, wasmPackPath, false);
     });
 
     api.onBeforeDevCompile(async () => {
@@ -91,9 +93,15 @@ export const pluginWasmPack = (
     });
 
     api.onBeforeStartDevServer(async () => {
-      await buildCrates(api.logger, options, wasmPackPath, true);
+      await buildCrates(api.logger, options, rootPath, wasmPackPath, true);
 
-      watcher = watchCrates(api.logger, options, wasmPackPath, wasmPackMutex);
+      watcher = watchCrates(
+        api.logger,
+        options,
+        rootPath,
+        wasmPackPath,
+        wasmPackMutex
+      );
     });
 
     api.onCloseDevServer(() => {
@@ -103,27 +111,29 @@ export const pluginWasmPack = (
     });
 
     if (options.aliasPkgDir != false) {
-      api.modifyBundlerChain((chain) => {
-        const aliasName = options.pkgsDir
-          ? `@${path.basename(options.pkgsDir)}`
-          : "@pkgs";
+      const aliasName = options.pkgsDir
+        ? `@${path.basename(options.pkgsDir)}`
+        : "@pkgs";
 
-        const pkgsDir = options.pkgsDir ?? "pkgs";
-
-        chain.resolve.alias.set(aliasName, pkgsDir);
-
-        const oldAlias = loadOldPkgsDir();
-
-        if (oldAlias !== undefined && oldAlias !== pkgsDir) {
-          if (oldAlias !== pkgsDir) {
-            aliasTsconfig(aliasName, oldAlias, pkgsDir);
-            saveOldPkgsDir(aliasName);
-          }
-        } else {
-          aliasTsconfig(aliasName, undefined, pkgsDir);
-          saveOldPkgsDir(aliasName);
-        }
+      api.modifyEnvironmentConfig((config, { mergeEnvironmentConfig }) => {
+        return mergeEnvironmentConfig(config, {
+          resolve: {
+            alias: {
+              [aliasName]: pkgsDir,
+            },
+          },
+        });
       });
+
+      const oldAlias = loadOldAlias(rootPath);
+
+      if (oldAlias !== undefined && oldAlias !== aliasName) {
+        aliasTsconfig(aliasName, oldAlias, pkgsDir, rootPath);
+        saveOldAlias(aliasName, rootPath);
+      } else {
+        aliasTsconfig(aliasName, undefined, pkgsDir, rootPath);
+        saveOldAlias(aliasName, rootPath);
+      }
     }
   },
 });

@@ -14,9 +14,10 @@ type TsConfig = {
 export function aliasTsconfig(
   alias: string,
   oldAlias: string | undefined,
-  pkgsDir: string
+  pkgsDir: string,
+  rootPath: string
 ): void {
-  const tsconfigPath = path.resolve(process.cwd(), "tsconfig.json");
+  const tsconfigPath = path.resolve(rootPath, "tsconfig.json");
   if (!fs.existsSync(tsconfigPath)) return;
 
   const raw = fs.readFileSync(tsconfigPath, "utf-8");
@@ -30,8 +31,8 @@ export function aliasTsconfig(
 
   const relativePath =
     json.compilerOptions.baseUrl === "."
-      ? path.relative(process.cwd(), pkgsDir).replace(/\\/g, "/")
-      : `./${pkgsDir}`;
+      ? path.relative(rootPath, pkgsDir).replace(/\\/g, "/")
+      : `./${path.relative(rootPath, pkgsDir).replace(/\\/g, "/")}`;
 
   const aliasValue = [`${relativePath}/*`];
 
@@ -58,29 +59,34 @@ export function aliasTsconfig(
   fs.writeFileSync(tsconfigPath, output, "utf-8");
 }
 
-const STORE_PATH = path.resolve(
-  "node_modules/.rsbuild-plugin-wasmpack/oldAlias.json"
-);
+function getStorePath(rootPath: string): string {
+  return path.resolve(
+    rootPath,
+    "node_modules/.rsbuild-plugin-wasmpack/oldAlias.json"
+  );
+}
 
-export function saveOldPkgsDir(pkgsDir: string): void {
-  const dir = path.dirname(STORE_PATH);
+export function saveOldAlias(alias: string, rootPath: string): void {
+  const storePath = getStorePath(rootPath);
+  const dir = path.dirname(storePath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  fs.writeFileSync(STORE_PATH, JSON.stringify({ pkgsDir }), "utf-8");
+  fs.writeFileSync(storePath, JSON.stringify({ alias }), "utf-8");
 }
 
-export function loadOldPkgsDir(): string | undefined {
-  if (!fs.existsSync(STORE_PATH)) return undefined;
+export function loadOldAlias(rootPath: string): string | undefined {
+  const storePath = getStorePath(rootPath);
+  if (!fs.existsSync(storePath)) return undefined;
 
   try {
-    const data = JSON.parse(fs.readFileSync(STORE_PATH, "utf-8"));
-    if (typeof data.pkgsDir === "string") {
-      return data.pkgsDir;
+    const data = JSON.parse(fs.readFileSync(storePath, "utf-8"));
+    if (typeof data.alias === "string") {
+      return data.alias;
     }
   } catch {
-    // corrupted or unreadable file — ignore
+    // corrupted or unreadable file, ignore
   }
 
   return undefined;
