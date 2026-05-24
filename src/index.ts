@@ -2,7 +2,7 @@ import fs from "node:fs";
 import * as os from "node:os";
 import path from "node:path";
 import type { RsbuildPlugin, RsbuildPluginAPI } from "@rsbuild/core";
-import { sync as runSync } from "cross-spawn";
+import { execaSync } from "execa";
 import {
   aliasTsconfig,
   isValidUnscopedModuleName,
@@ -65,7 +65,7 @@ export const pluginWasmPack = (
 
     if (!fs.existsSync(wasmPackPath)) {
       if (options.autoInstallWasmPack) {
-        runSync(
+        execaSync(
           path.join(cargoBinPath, `cargo${exeExt}`),
           ["install", "wasm-pack"],
           {

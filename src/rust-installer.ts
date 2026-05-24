@@ -3,7 +3,7 @@ import * as http from "node:http";
 import * as https from "node:https";
 import * as os from "node:os";
 import path from "node:path";
-import { sync as runSync } from "cross-spawn";
+import { execaSync } from "execa";
 import type { RustInstallerOptions } from "./options.js";
 
 export class RustInstaller {
@@ -68,7 +68,7 @@ export class RustInstaller {
 
     console.info("Installing Rust toolchain, Please wait");
 
-    runSync(rustInitPath, this.args, {
+    execaSync(rustInitPath, this.args, {
       stdio: "inherit",
     });
 
@@ -87,11 +87,8 @@ export class RustInstaller {
     if (type === "Linux") {
       let clib = "gnu";
       try {
-        const ldd = runSync("ldd", ["--version"]);
-        if (
-          Buffer.isBuffer(ldd.stdout) &&
-          ldd.stdout.toString().includes("musl")
-        ) {
+        const ldd = execaSync("ldd", ["--version"]);
+        if (ldd.stdout.includes("musl")) {
           clib = "musl";
         }
       } catch {}
