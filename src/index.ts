@@ -9,7 +9,7 @@ import {
   loadOldAlias,
   saveOldAlias,
 } from "./aliasing.js";
-import { buildCrates, Mutex, watchCrates } from "./builder.js";
+import { buildCrates, type Mutex, watchCrates } from "./builder.js";
 import type { PluginWasmPackOptions } from "./options.js";
 import { detectCargoBin, RustInstaller } from "./rust-installer.js";
 
@@ -110,7 +110,7 @@ export const pluginWasmPack = (
       }
     });
 
-    if (options.aliasPkgDir != false) {
+    if (options.aliasPkgDir !== false) {
       const aliasName = options.pkgsDir
         ? `@${path.basename(options.pkgsDir)}`
         : "@pkgs";

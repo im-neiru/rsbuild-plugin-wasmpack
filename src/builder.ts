@@ -26,7 +26,7 @@ export function watchCrates(
     options.pkgsDir ?? "pkgs",
     options.crates,
     logger
-  )!;
+  );
 
   const watcher = chokidar.watch(
     crates
@@ -97,7 +97,7 @@ export async function buildCrates(
     options.pkgsDir ?? "pkgs",
     options.crates,
     logger
-  )!;
+  );
 
   const results = await Promise.allSettled(
     crates.map((crate) =>
@@ -135,15 +135,13 @@ export async function buildCrates(
     crates
       .filter((_, i) => results[i].status === "fulfilled")
       .map((crate) => {
-        let profile = devMode
+        const profile = devMode
           ? crate.profileOnDev ?? "dev"
           : crate.profileOnProd ?? "release";
 
         const stripWasm = crate.stripWasm?.includes(profile) ?? false;
 
-        if (stripWasm) {
-          stripWasmIn(logger, crate.output);
-        }
+        return stripWasm ? stripWasmIn(logger, crate.output) : undefined;
       })
   );
 }
