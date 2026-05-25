@@ -10,30 +10,31 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 test.setTimeout(120000);
 
 test("should build wasm", async ({ page }) => {
-	const rsbuild = await createRsbuild({
-		cwd: __dirname,
-		rsbuildConfig: {
-			plugins: [
-				pluginWasmPack({
-					crates: [
-						{
-							path: "rust",
-							target: "nodejs",
-						},
-					],
-					aliasPkgDir: false,
-				}),
-			],
-			server: {
-				port: getRandomPort(),
-			},
-		},
-	});
+  const rsbuild = await createRsbuild({
+    cwd: __dirname,
+    rsbuildConfig: {
+      plugins: [
+        pluginWasmPack({
+          crates: [
+            {
+              path: "rust",
+              target: "nodejs",
+            },
+          ],
+          aliasPkgDir: false,
+          autoInstallWasmPack: true,
+        }),
+      ],
+      server: {
+        port: getRandomPort(),
+      },
+    },
+  });
 
-	await rsbuild.build();
-	const { server, urls } = await rsbuild.startDevServer();
+  await rsbuild.build();
+  const { server, urls } = await rsbuild.startDevServer();
 
-	await page.goto(urls[0]);
+  await page.goto(urls[0]);
 
-	await server.close();
+  await server.close();
 });
