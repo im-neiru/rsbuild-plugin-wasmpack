@@ -2,10 +2,12 @@ import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "@playwright/test";
 import { createRsbuild } from "@rsbuild/core";
-import { pluginWasmPack } from "../../src/index";
 import { getRandomPort } from "../../helper";
+import { pluginWasmPack } from "../../src/index";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+test.setTimeout(120000);
 
 test("should build wasm", async ({ page }) => {
   const rsbuild = await createRsbuild({
@@ -15,10 +17,12 @@ test("should build wasm", async ({ page }) => {
         pluginWasmPack({
           crates: [
             {
-              path: "test/single-crate/rust",
+              path: "rust",
               target: "nodejs",
             },
           ],
+          aliasPkgDir: false,
+          autoInstallWasmPack: true,
         }),
       ],
       server: {

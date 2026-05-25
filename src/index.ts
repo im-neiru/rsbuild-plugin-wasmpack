@@ -2,128 +2,138 @@ import fs from "node:fs";
 import * as os from "node:os";
 import path from "node:path";
 import type { RsbuildPlugin, RsbuildPluginAPI } from "@rsbuild/core";
-import { sync as runSync } from "cross-spawn";
+import { execaSync } from "execa";
 import {
-  aliasTsconfig,
-  isValidUnscopedModuleName,
-  loadOldPkgsDir,
-  saveOldPkgsDir,
+	aliasTsconfig,
+	isValidUnscopedModuleName,
+	loadOldAlias,
+	saveOldAlias,
 } from "./aliasing.js";
-import { buildCrates, Mutex, watchCrates } from "./builder.js";
+import { buildCrates, type Mutex, watchCrates } from "./builder.js";
 import type { PluginWasmPackOptions } from "./options.js";
 import { detectCargoBin, RustInstaller } from "./rust-installer.js";
 
-let watcher: ReturnType<typeof watchCrates> | null = null;
-
 export const pluginWasmPack = (
-  options: PluginWasmPackOptions
+	options: PluginWasmPackOptions,
 ): RsbuildPlugin => ({
-  name: "rsbuild:wasmpack",
-  setup: async (api: RsbuildPluginAPI) => {
-    if (options.pkgsDir) {
-      if (!isValidUnscopedModuleName(path.basename(options.pkgsDir))) {
-        throw new Error(
-          "Invalid `pkgsDir`. Make sure it is a valid package name for NodeJS."
-        );
-      }
+	name: "rsbuild:wasmpack",
+	setup: async (api: RsbuildPluginAPI) => {
+		const rootPath = api.context.rootPath;
+		const pkgsDir = path.resolve(rootPath, options.pkgsDir ?? "pkgs");
+		let watcher: ReturnType<typeof watchCrates> | null = null;
 
-      if (fs.existsSync(options.pkgsDir)) {
-        const pkgsDirStat = fs.statSync(options.pkgsDir);
+		if (options.pkgsDir) {
+			if (!isValidUnscopedModuleName(path.basename(options.pkgsDir))) {
+				throw new Error(
+					"Invalid `pkgsDir`. Make sure it is a valid package name for NodeJS.",
+				);
+			}
 
-        if (pkgsDirStat.isFile()) {
-          throw new Error(
-            "Invalid `pkgsDir`. Make sure it is an empty directory and not a file."
-          );
-        }
-      } else {
-        fs.mkdirSync(options.pkgsDir);
-      }
-    }
+			if (fs.existsSync(pkgsDir)) {
+				const pkgsDirStat = fs.statSync(pkgsDir);
 
-    const exeExt = os.type().includes("Windows") ? ".exe" : "";
-    let cargoBinPath = detectCargoBin();
+				if (pkgsDirStat.isFile()) {
+					throw new Error(
+						"Invalid `pkgsDir`. Make sure it is an empty directory and not a file.",
+					);
+				}
+			} else {
+				fs.mkdirSync(pkgsDir, { recursive: true });
+			}
+		}
 
-    if (!cargoBinPath) {
-      if (options.autoInstallRust === true) {
-        const rustInstaller = new RustInstaller(options.rustToolchainOptions);
-        cargoBinPath = await rustInstaller.install();
-        if (!cargoBinPath) throw new Error("Rust toolchain install failed.");
-      } else {
-        throw new Error("Rust not found and autoInstallRust is disabled.");
-      }
-    }
+		const exeExt = os.type().includes("Windows") ? ".exe" : "";
+		let cargoBinPath = detectCargoBin();
 
-    let wasmPackPath = options.wasmpackPath
-      ? path.resolve(options.wasmpackPath)
-      : path.resolve(os.homedir(), `.cargo/bin/wasm-pack${exeExt}`);
+		if (!cargoBinPath) {
+			if (options.autoInstallRust === true) {
+				const rustInstaller = new RustInstaller(options.rustToolchainOptions);
+				cargoBinPath = await rustInstaller.install();
+				if (!cargoBinPath) throw new Error("Rust toolchain install failed.");
+			} else {
+				throw new Error("Rust not found and autoInstallRust is disabled.");
+			}
+		}
 
-    if (!fs.existsSync(wasmPackPath)) {
-      wasmPackPath = path.resolve(cargoBinPath, `wasm-pack${exeExt}`);
-    }
+		let wasmPackPath = options.wasmpackPath
+			? path.resolve(options.wasmpackPath)
+			: path.resolve(os.homedir(), `.cargo/bin/wasm-pack${exeExt}`);
 
-    if (!fs.existsSync(wasmPackPath)) {
-      if (options.autoInstallWasmPack) {
-        runSync(
-          path.join(cargoBinPath, `cargo${exeExt}`),
-          ["install", "wasm-pack"],
-          {
-            stdio: "inherit",
-          }
-        );
-        wasmPackPath = path.resolve(cargoBinPath, `wasm-pack${exeExt}`);
-        if (!fs.existsSync(wasmPackPath))
-          throw new Error("wasm-pack install failed.");
-      } else {
-        throw new Error(
-          "wasm-pack not found and autoInstallWasmPack is disabled."
-        );
-      }
-    }
+		if (!fs.existsSync(wasmPackPath)) {
+			wasmPackPath = path.resolve(cargoBinPath, `wasm-pack${exeExt}`);
+		}
 
-    const wasmPackMutex: Mutex = { ready: Promise.resolve() };
+		if (!fs.existsSync(wasmPackPath)) {
+			if (options.autoInstallWasmPack) {
+				execaSync(
+					path.join(cargoBinPath, `cargo${exeExt}`),
+					["install", "wasm-pack"],
+					{
+						stdio: "inherit",
+					},
+				);
+				wasmPackPath = path.resolve(cargoBinPath, `wasm-pack${exeExt}`);
+				if (!fs.existsSync(wasmPackPath))
+					throw new Error("wasm-pack install failed.");
+			} else {
+				throw new Error(
+					"wasm-pack not found and autoInstallWasmPack is disabled.",
+				);
+			}
+		}
 
-    api.onBeforeBuild(async () => {
-      await buildCrates(api.logger, options, wasmPackPath, false);
-    });
+		const wasmPackMutex: Mutex = { ready: Promise.resolve() };
 
-    api.onBeforeDevCompile(async () => {
-      await wasmPackMutex.ready;
-    });
+		api.onBeforeBuild(async () => {
+			await buildCrates(api.logger, options, rootPath, wasmPackPath, false);
+		});
 
-    api.onBeforeStartDevServer(async () => {
-      await buildCrates(api.logger, options, wasmPackPath, true);
+		api.onBeforeDevCompile(async () => {
+			await wasmPackMutex.ready;
+		});
 
-      watcher = watchCrates(api.logger, options, wasmPackPath, wasmPackMutex);
-    });
+		api.onBeforeStartDevServer(async () => {
+			await buildCrates(api.logger, options, rootPath, wasmPackPath, true);
 
-    api.onCloseDevServer(() => {
-      if (watcher) {
-        watcher.close();
-      }
-    });
+			watcher = watchCrates(
+				api.logger,
+				options,
+				rootPath,
+				wasmPackPath,
+				wasmPackMutex,
+			);
+		});
 
-    if (options.aliasPkgDir != false) {
-      api.modifyBundlerChain((chain) => {
-        const aliasName = options.pkgsDir
-          ? `@${path.basename(options.pkgsDir)}`
-          : "@pkgs";
+		api.onCloseDevServer(() => {
+			if (watcher) {
+				watcher.close();
+			}
+		});
 
-        const pkgsDir = options.pkgsDir ?? "pkgs";
+		if (options.aliasPkgDir !== false) {
+			const aliasName = options.pkgsDir
+				? `@${path.basename(options.pkgsDir)}`
+				: "@pkgs";
 
-        chain.resolve.alias.set(aliasName, pkgsDir);
+			api.modifyEnvironmentConfig((config, { mergeEnvironmentConfig }) => {
+				return mergeEnvironmentConfig(config, {
+					resolve: {
+						alias: {
+							[aliasName]: pkgsDir,
+						},
+					},
+				});
+			});
 
-        const oldAlias = loadOldPkgsDir();
+			const oldAlias = loadOldAlias(rootPath);
 
-        if (oldAlias !== undefined && oldAlias !== pkgsDir) {
-          if (oldAlias !== pkgsDir) {
-            aliasTsconfig(aliasName, oldAlias, pkgsDir);
-            saveOldPkgsDir(aliasName);
-          }
-        } else {
-          aliasTsconfig(aliasName, undefined, pkgsDir);
-          saveOldPkgsDir(aliasName);
-        }
-      });
-    }
-  },
+			if (oldAlias !== undefined && oldAlias !== aliasName) {
+				aliasTsconfig(aliasName, oldAlias, pkgsDir, rootPath);
+				saveOldAlias(aliasName, rootPath);
+			} else {
+				aliasTsconfig(aliasName, undefined, pkgsDir, rootPath);
+				saveOldAlias(aliasName, rootPath);
+			}
+		}
+	},
 });

@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Install Playwright Browsers
+        run: bunx playwright install --with-deps
+
+      - name: Build
+        run: bun run build
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Test
+        run: bun run test
