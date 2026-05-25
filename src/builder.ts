@@ -2,7 +2,7 @@ import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import path from "node:path";
 import type { Logger } from "@rsbuild/core";
-import chokidar from "chokidar";
+import chokidar, { type ChokidarOptions } from "chokidar";
 import { execa } from "execa";
 import { load as loadToml } from "js-toml";
 import wabtFactory from "wabt";
@@ -28,29 +28,68 @@ export function watchCrates(
     logger,
   );
 
-  const watcher = chokidar.watch(
-    crates
-      .filter(({ liveReload = true }) => liveReload)
-      .map((crate) => path.join(crate.path, "src")),
-    {
-      ignoreInitial: true,
-      usePolling: false,
-      ignored: (filePath) => {
-        const normalized = path.resolve(filePath);
-        return normalized.includes(`${path.sep}target${path.sep}`);
-      },
+  const watchPaths = crates
+    .filter(({ liveReload = true }) => liveReload)
+    .map((crate) => path.join(crate.path, "src"));
+
+  const watchOptions: ChokidarOptions = {
+    ignoreInitial: true,
+    usePolling: true,
+    interval: 300,
+    binaryInterval: 1000,
+    ignored: (filePath: string) => {
+      const normalized = path.resolve(filePath);
+      return normalized.includes(`${path.sep}target${path.sep}`);
     },
-  );
+  };
 
-  watcher.on("all", async (event, filePath) => {
-    const crate = crates.find((crate) =>
-      path.resolve(filePath).startsWith(crate.path),
-    );
+  let building = false;
+  let pendingCrate: (typeof crates)[number] | null = null;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-    if (!crate) return;
+  const DEBOUNCE_MS = 200;
 
-    logger.info(`[rsbuild:wasmpack] ${event} → ${filePath}`);
+  function createWatcher() {
+    const w = chokidar.watch(watchPaths, watchOptions);
 
+    w.on("error", (error) => {
+      logger.warn(
+        `[rsbuild:wasmpack] Watcher error: ${(error as Error).message}. Recreating watcher...`,
+      );
+      w.close().then(() => {
+        watcher = createWatcher();
+      });
+    });
+
+    w.on("all", (event, filePath) => {
+      const crate = crates.find((crate) =>
+        path.resolve(filePath).startsWith(crate.path),
+      );
+
+      if (!crate) return;
+
+      logger.info(`[rsbuild:wasmpack] ${event} → ${filePath}`);
+
+      pendingCrate = crate;
+
+      if (debounceTimer) clearTimeout(debounceTimer);
+
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        const crateToRebuild = pendingCrate;
+        pendingCrate = null;
+
+        if (!crateToRebuild || building) return;
+
+        triggerRebuild(crateToRebuild);
+      }, DEBOUNCE_MS);
+    });
+
+    return w;
+  }
+
+  async function triggerRebuild(crate: (typeof crates)[number]) {
+    building = true;
     const profile = crate.profileOnDev ?? "dev";
 
     let resolveReady!: () => void;
@@ -78,11 +117,22 @@ export function watchCrates(
     } catch (err) {
       logger.error(`[rsbuild:wasmpack] Failed to build ${crate.name}:`, err);
     } finally {
+      building = false;
       resolveReady();
-    }
-  });
 
-  return watcher;
+      if (pendingCrate) {
+        const nextCrate = pendingCrate;
+        pendingCrate = null;
+        triggerRebuild(nextCrate);
+      }
+    }
+  }
+
+  let watcher = createWatcher();
+
+  return {
+    close: () => watcher.close(),
+  };
 }
 
 export async function buildCrates(
