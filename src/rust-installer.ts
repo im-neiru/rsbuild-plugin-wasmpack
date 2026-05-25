@@ -7,192 +7,192 @@ import { execaSync } from "execa";
 import type { RustInstallerOptions } from "./options.js";
 
 export class RustInstaller {
-  private readonly rustupInitSrc: string;
-  private readonly rustupInitDestDir: string;
-  private readonly rustInitName: string;
-  private readonly args: string[];
+	private readonly rustupInitSrc: string;
+	private readonly rustupInitDestDir: string;
+	private readonly rustInitName: string;
+	private readonly args: string[];
 
-  constructor(options: RustInstallerOptions) {
-    // Default options
+	constructor(options: RustInstallerOptions) {
+		// Default options
 
-    if (!options?.profile) {
-      options.profile = "minimal";
-    }
+		if (!options?.profile) {
+			options.profile = "minimal";
+		}
 
-    if (!options?.defaultToolchain) {
-      options.defaultToolchain = "nightly";
-    }
+		if (!options?.defaultToolchain) {
+			options.defaultToolchain = "nightly";
+		}
 
-    if (!options?.targets) {
-      options.targets = ["wasm32-unknown-unknown"];
-    }
+		if (!options?.targets) {
+			options.targets = ["wasm32-unknown-unknown"];
+		}
 
-    const rustUpdateRoot =
-      process.env.RUSTUP_UPDATE_ROOT || "https://static.rust-lang.org/rustup";
+		const rustUpdateRoot =
+			process.env.RUSTUP_UPDATE_ROOT || "https://static.rust-lang.org/rustup";
 
-    const arch = RustInstaller.getArch();
-    const onWindows = arch.includes("windows");
-    const ext = onWindows ? ".exe" : "";
+		const arch = RustInstaller.getArch();
+		const onWindows = arch.includes("windows");
+		const ext = onWindows ? ".exe" : "";
 
-    this.rustInitName = `rustup-init${ext}`;
-    this.rustupInitSrc = `${rustUpdateRoot}/dist/${arch}/rustup-init${ext}`;
+		this.rustInitName = `rustup-init${ext}`;
+		this.rustupInitSrc = `${rustUpdateRoot}/dist/${arch}/rustup-init${ext}`;
 
-    let tmpDir = os.tmpdir();
-    // tmpDir fallbacks
-    if (!fs.existsSync(tmpDir)) {
-      tmpDir =
-        process.env.TEMP || process.env.TMP || onWindows
-          ? "C:\\Windows\\Temp"
-          : "/tmp";
-    }
+		let tmpDir = os.tmpdir();
+		// tmpDir fallbacks
+		if (!fs.existsSync(tmpDir)) {
+			tmpDir =
+				process.env.TEMP || process.env.TMP || onWindows
+					? "C:\\Windows\\Temp"
+					: "/tmp";
+		}
 
-    if (!fs.existsSync(tmpDir)) {
-      tmpDir = process.env.TMP || onWindows ? "C:\\Windows\\Temp" : "/tmp";
-    }
+		if (!fs.existsSync(tmpDir)) {
+			tmpDir = process.env.TMP || onWindows ? "C:\\Windows\\Temp" : "/tmp";
+		}
 
-    if (!fs.existsSync(tmpDir)) {
-      tmpDir = onWindows ? "C:\\Windows\\Temp" : "/tmp";
-    }
+		if (!fs.existsSync(tmpDir)) {
+			tmpDir = onWindows ? "C:\\Windows\\Temp" : "/tmp";
+		}
 
-    this.rustupInitDestDir = path.join(tmpDir, "rustup-init-");
-    this.args = RustInstaller.getSpawnArgs(options);
-  }
+		this.rustupInitDestDir = path.join(tmpDir, "rustup-init-");
+		this.args = RustInstaller.getSpawnArgs(options);
+	}
 
-  async install() {
-    const tempDir = fs.mkdtempSync(this.rustupInitDestDir);
-    const rustInitPath = path.join(tempDir, this.rustInitName);
+	async install() {
+		const tempDir = fs.mkdtempSync(this.rustupInitDestDir);
+		const rustInitPath = path.join(tempDir, this.rustInitName);
 
-    await RustInstaller.download(this.rustupInitSrc, rustInitPath);
+		await RustInstaller.download(this.rustupInitSrc, rustInitPath);
 
-    fs.chmodSync(rustInitPath, 0o755);
+		fs.chmodSync(rustInitPath, 0o755);
 
-    console.info("Installing Rust toolchain, Please wait");
+		console.info("Installing Rust toolchain, Please wait");
 
-    execaSync(rustInitPath, this.args, {
-      stdio: "inherit",
-    });
+		execaSync(rustInitPath, this.args, {
+			stdio: "inherit",
+		});
 
-    fs.unlinkSync(rustInitPath);
-    fs.rmdirSync(tempDir);
+		fs.unlinkSync(rustInitPath);
+		fs.rmdirSync(tempDir);
 
-    return detectCargoBin();
-  }
+		return detectCargoBin();
+	}
 
-  private static getArch() {
-    const type = os.type();
-    let ostype = type;
+	private static getArch() {
+		const type = os.type();
+		let ostype = type;
 
-    if (type === "Windows_NT") ostype = "pc-windows-gnu";
-    if (type === "Darwin") ostype = "apple-darwin";
-    if (type === "Linux") {
-      let clib = "gnu";
-      try {
-        const ldd = execaSync("ldd", ["--version"]);
-        if (ldd.stdout.includes("musl")) {
-          clib = "musl";
-        }
-      } catch {}
-      ostype = `unknown-linux-${clib}`;
-    }
+		if (type === "Windows_NT") ostype = "pc-windows-gnu";
+		if (type === "Darwin") ostype = "apple-darwin";
+		if (type === "Linux") {
+			let clib = "gnu";
+			try {
+				const ldd = execaSync("ldd", ["--version"]);
+				if (ldd.stdout.includes("musl")) {
+					clib = "musl";
+				}
+			} catch {}
+			ostype = `unknown-linux-${clib}`;
+		}
 
-    const archMap = new Map<string, string>([
-      ["x64", "x86_64"],
-      ["ia32", "i686"],
-      ["arm", "arm"],
-      ["arm64", "aarch64"],
-      ["riscv64", "riscv64gc"],
-    ]);
+		const archMap = new Map<string, string>([
+			["x64", "x86_64"],
+			["ia32", "i686"],
+			["arm", "arm"],
+			["arm64", "aarch64"],
+			["riscv64", "riscv64gc"],
+		]);
 
-    const cpu = archMap.get(os.arch()) || os.arch();
+		const cpu = archMap.get(os.arch()) || os.arch();
 
-    return `${cpu}-${ostype}`;
-  }
+		return `${cpu}-${ostype}`;
+	}
 
-  private static download(urlStr: string, dest: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const urlObj = new URL(urlStr);
-      const get = urlObj.protocol === "https:" ? https.get : http.get;
+	private static download(urlStr: string, dest: string): Promise<void> {
+		return new Promise((resolve, reject) => {
+			const urlObj = new URL(urlStr);
+			const get = urlObj.protocol === "https:" ? https.get : http.get;
 
-      const req = get(urlObj, (res) => {
-        if (res.statusCode && res.statusCode >= 400) {
-          reject(new Error(`HTTP ${res.statusCode}`));
-          return;
-        }
+			const req = get(urlObj, (res) => {
+				if (res.statusCode && res.statusCode >= 400) {
+					reject(new Error(`HTTP ${res.statusCode}`));
+					return;
+				}
 
-        const totalBytes = parseInt(res.headers["content-length"] || "0", 10);
-        let downloadedBytes = 0;
+				const totalBytes = parseInt(res.headers["content-length"] || "0", 10);
+				let downloadedBytes = 0;
 
-        const file = fs.createWriteStream(dest, { mode: 0o755 });
-        res.pipe(file);
+				const file = fs.createWriteStream(dest, { mode: 0o755 });
+				res.pipe(file);
 
-        res.on("data", (chunk) => {
-          downloadedBytes += chunk.length;
-          if (totalBytes) {
-            const percent = ((downloadedBytes / totalBytes) * 100).toFixed(2);
-            process.stdout.write(`\rDownloading rustup-init: ${percent}%`);
-          }
-        });
+				res.on("data", (chunk) => {
+					downloadedBytes += chunk.length;
+					if (totalBytes) {
+						const percent = ((downloadedBytes / totalBytes) * 100).toFixed(2);
+						process.stdout.write(`\rDownloading rustup-init: ${percent}%`);
+					}
+				});
 
-        file.on("finish", () => {
-          console.info("\nDownload complete!");
-          file.close(() => resolve());
-        });
-      });
+				file.on("finish", () => {
+					console.info("\nDownload complete!");
+					file.close(() => resolve());
+				});
+			});
 
-      req.on("error", reject);
-    });
-  }
+			req.on("error", reject);
+		});
+	}
 
-  private static getSpawnArgs(options: RustInstallerOptions): string[] {
-    const args: string[] = ["-y"];
+	private static getSpawnArgs(options: RustInstallerOptions): string[] {
+		const args: string[] = ["-y"];
 
-    // --default-toolchain <name>
-    if (options.defaultToolchain) {
-      args.push("--default-toolchain", options.defaultToolchain);
-    }
+		// --default-toolchain <name>
+		if (options.defaultToolchain) {
+			args.push("--default-toolchain", options.defaultToolchain);
+		}
 
-    // --profile <profile>
-    if (options.profile) {
-      args.push("--profile", options.profile);
-    }
+		// --profile <profile>
+		if (options.profile) {
+			args.push("--profile", options.profile);
+		}
 
-    // --component rustfmt,clippy,...
-    const components = new Set(options.components);
+		// --component rustfmt,clippy,...
+		const components = new Set(options.components);
 
-    if (components && components.size > 0) {
-      args.push("--component", Array.from(components).join(","));
-    }
+		if (components && components.size > 0) {
+			args.push("--component", Array.from(components).join(","));
+		}
 
-    // --target wasm32-unknown-unknown,...
-    const targets = new Set(options.targets);
+		// --target wasm32-unknown-unknown,...
+		const targets = new Set(options.targets);
 
-    if (targets && targets.size > 0) {
-      args.push("--target", Array.from(targets).join(","));
-    }
+		if (targets && targets.size > 0) {
+			args.push("--target", Array.from(targets).join(","));
+		}
 
-    return args;
-  }
+		return args;
+	}
 }
 
 export function detectCargoBin(): string | null {
-  let cargoHome: string | undefined;
+	let cargoHome: string | undefined;
 
-  if (process.env.CARGO_HOME) {
-    cargoHome = process.env.CARGO_HOME;
-  } else {
-    const homeDir = os.homedir();
-    if (os.platform() === "win32") {
-      cargoHome = path.join(homeDir, ".cargo");
-    } else {
-      cargoHome = path.join(homeDir, ".cargo");
-    }
-  }
+	if (process.env.CARGO_HOME) {
+		cargoHome = process.env.CARGO_HOME;
+	} else {
+		const homeDir = os.homedir();
+		if (os.platform() === "win32") {
+			cargoHome = path.join(homeDir, ".cargo");
+		} else {
+			cargoHome = path.join(homeDir, ".cargo");
+		}
+	}
 
-  const binPath = path.join(cargoHome, "bin");
+	const binPath = path.join(cargoHome, "bin");
 
-  if (fs.existsSync(binPath)) {
-    return binPath;
-  } else {
-    return null;
-  }
+	if (fs.existsSync(binPath)) {
+		return binPath;
+	} else {
+		return null;
+	}
 }
