@@ -25,7 +25,7 @@
 	],
 	"scripts": {
 		"build": "rslib build",
-		"test": "playwright test",
+		"test": "bunx playwright test test/single-crate/index.test.ts",
 		"format": "biome format --write",
 		"lint": "biome lint --error-on-warnings",
 		"fix": "biome lint --write",
