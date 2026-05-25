@@ -14,7 +14,7 @@ import type { PluginWasmPackOptions } from "./options.js";
 import { detectCargoBin, RustInstaller } from "./rust-installer.js";
 
 export const pluginWasmPack = (
-  options: PluginWasmPackOptions
+  options: PluginWasmPackOptions,
 ): RsbuildPlugin => ({
   name: "rsbuild:wasmpack",
   setup: async (api: RsbuildPluginAPI) => {
@@ -25,7 +25,7 @@ export const pluginWasmPack = (
     if (options.pkgsDir) {
       if (!isValidUnscopedModuleName(path.basename(options.pkgsDir))) {
         throw new Error(
-          "Invalid `pkgsDir`. Make sure it is a valid package name for NodeJS."
+          "Invalid `pkgsDir`. Make sure it is a valid package name for NodeJS.",
         );
       }
 
@@ -34,7 +34,7 @@ export const pluginWasmPack = (
 
         if (pkgsDirStat.isFile()) {
           throw new Error(
-            "Invalid `pkgsDir`. Make sure it is an empty directory and not a file."
+            "Invalid `pkgsDir`. Make sure it is an empty directory and not a file.",
           );
         }
       } else {
@@ -70,14 +70,14 @@ export const pluginWasmPack = (
           ["install", "wasm-pack"],
           {
             stdio: "inherit",
-          }
+          },
         );
         wasmPackPath = path.resolve(cargoBinPath, `wasm-pack${exeExt}`);
         if (!fs.existsSync(wasmPackPath))
           throw new Error("wasm-pack install failed.");
       } else {
         throw new Error(
-          "wasm-pack not found and autoInstallWasmPack is disabled."
+          "wasm-pack not found and autoInstallWasmPack is disabled.",
         );
       }
     }
@@ -100,7 +100,7 @@ export const pluginWasmPack = (
         options,
         rootPath,
         wasmPackPath,
-        wasmPackMutex
+        wasmPackMutex,
       );
     });
 

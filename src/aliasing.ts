@@ -15,7 +15,7 @@ export function aliasTsconfig(
   alias: string,
   oldAlias: string | undefined,
   pkgsDir: string,
-  rootPath: string
+  rootPath: string,
 ): void {
   const tsconfigPath = path.resolve(rootPath, "tsconfig.json");
   if (!fs.existsSync(tsconfigPath)) return;
@@ -62,7 +62,7 @@ export function aliasTsconfig(
 function getStorePath(rootPath: string): string {
   return path.resolve(
     rootPath,
-    "node_modules/.rsbuild-plugin-wasmpack/oldAlias.json"
+    "node_modules/.rsbuild-plugin-wasmpack/oldAlias.json",
   );
 }
 

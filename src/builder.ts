@@ -1,9 +1,9 @@
 import fs from "node:fs";
+import fsPromises from "node:fs/promises";
 import path from "node:path";
 import type { Logger } from "@rsbuild/core";
 import chokidar from "chokidar";
 import { execa } from "execa";
-import fsPromises from "node:fs/promises";
 import { load as loadToml } from "js-toml";
 import wabtFactory from "wabt";
 import type {
@@ -19,13 +19,13 @@ export function watchCrates(
   options: PluginWasmPackOptions,
   rootPath: string,
   wasmPackPath: string,
-  mutex: Mutex
+  mutex: Mutex,
 ) {
   const crates = readCrateTomls(
     rootPath,
     options.pkgsDir ?? "pkgs",
     options.crates,
-    logger
+    logger,
   );
 
   const watcher = chokidar.watch(
@@ -39,12 +39,12 @@ export function watchCrates(
         const normalized = path.resolve(filePath);
         return normalized.includes(`${path.sep}target${path.sep}`);
       },
-    }
+    },
   );
 
   watcher.on("all", async (event, filePath) => {
     const crate = crates.find((crate) =>
-      path.resolve(filePath).startsWith(crate.path)
+      path.resolve(filePath).startsWith(crate.path),
     );
 
     if (!crate) return;
@@ -67,7 +67,7 @@ export function watchCrates(
         crate.target,
         profile,
         crate.features,
-        crate.defaultFeatures
+        crate.defaultFeatures,
       );
 
       const stripWasm = crate.stripWasm?.includes(profile) ?? false;
@@ -90,13 +90,13 @@ export async function buildCrates(
   options: PluginWasmPackOptions,
   rootPath: string,
   wasmPackPath: string,
-  devMode: boolean
+  devMode: boolean,
 ) {
   const crates = readCrateTomls(
     rootPath,
     options.pkgsDir ?? "pkgs",
     options.crates,
-    logger
+    logger,
   );
 
   const results = await Promise.allSettled(
@@ -107,12 +107,12 @@ export async function buildCrates(
         crate.output,
         crate.target,
         devMode
-          ? crate.profileOnDev ?? "dev"
-          : crate.profileOnProd ?? "release",
+          ? (crate.profileOnDev ?? "dev")
+          : (crate.profileOnProd ?? "release"),
         crate.features,
-        crate.defaultFeatures
-      )
-    )
+        crate.defaultFeatures,
+      ),
+    ),
   );
 
   for (const [i, result] of results.entries()) {
@@ -124,7 +124,7 @@ export async function buildCrates(
         `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `❌ Build failed: ${name}\n` +
           `${result.reason.message}\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`,
       );
     } else {
       logger.info(`✅ Successfully built: ${name}`);
@@ -136,13 +136,13 @@ export async function buildCrates(
       .filter((_, i) => results[i].status === "fulfilled")
       .map((crate) => {
         const profile = devMode
-          ? crate.profileOnDev ?? "dev"
-          : crate.profileOnProd ?? "release";
+          ? (crate.profileOnDev ?? "dev")
+          : (crate.profileOnProd ?? "release");
 
         const stripWasm = crate.stripWasm?.includes(profile) ?? false;
 
         return stripWasm ? stripWasmIn(logger, crate.output) : undefined;
-      })
+      }),
   );
 }
 
@@ -153,7 +153,7 @@ async function buildCrate(
   target: CrateTarget["target"],
   profile: ProfileType,
   features?: string[],
-  defaultFeatures?: boolean
+  defaultFeatures?: boolean,
 ): Promise<void> {
   const args = [
     "build",
@@ -177,17 +177,17 @@ async function buildCrate(
       stdio: "inherit",
       env: {
         ...Object.fromEntries(
-          Object.entries(process.env).filter(([key]) => key !== "RUST_LOG")
+          Object.entries(process.env).filter(([key]) => key !== "RUST_LOG"),
         ),
         PATH: `${process.env.PATH}:${path.resolve(
           process.env.HOME || "",
-          ".cargo/bin"
+          ".cargo/bin",
         )}`,
       },
     });
   } catch (error) {
     throw new Error(
-      `wasm-pack failed for ${cratePath}: ${(error as Error).message}`
+      `wasm-pack failed for ${cratePath}: ${(error as Error).message}`,
     );
   }
 }
@@ -196,7 +196,7 @@ function readCrateTomls(
   rootPath: string,
   pkgsDir: string,
   crates: CrateTarget[],
-  logger: Logger
+  logger: Logger,
 ) {
   const result: (CrateTarget & { output: string; name: string })[] = [];
 
@@ -217,14 +217,14 @@ function readCrateTomls(
           `❌ Invalid Rust crate at "${fullPath}". ` +
           `Make sure the directory exists and contains a Cargo.toml file.\n` +
           `You can create one with: wasm-pack new ${crateName}\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`,
       );
 
       throw new Error();
     }
 
     const cargoToml = loadToml(
-      fs.readFileSync(cargoTomlPath, "utf-8")
+      fs.readFileSync(cargoTomlPath, "utf-8"),
     ) as CargoToml;
 
     if (!cargoToml?.package?.name) {
@@ -252,7 +252,7 @@ type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
 
 async function stripFile(
   wabt: UnwrapPromise<ReturnType<typeof wabtFactory>>,
-  filePath: string
+  filePath: string,
 ) {
   const bin = await fsPromises.readFile(filePath);
   const mod = wabt.readWasm(bin, { readDebugNames: false });
