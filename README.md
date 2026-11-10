@@ -97,42 +97,42 @@ import { defineConfig } from "@rsbuild/core";
 import { pluginWasmPack } from "rsbuild-plugin-wasmpack";
 
 export default defineConfig({
-  plugins: [
-    pluginWasmPack({
-      crates: [
-        {
-          path: "crate1",
-          target: "web",
-          liveReload: false // Optional if false disable liveReload (defaults to true).
-        },
-        {
-          path: "crate2",
-          target: "web",
-          profileOnDev: "profiling",
-          profileOnProd: "release",
-        },
-        {
-          path: "crate3",
-          target: "web",
-          features: ["serde"], // Optional (defaults to none)
-          defaultFeatures: false // Optional (defaults to true)
-        },
-      ],
-      wasmpackPath: "~/.cargo/bin/wasm-pack", // Optional (this can be loaded from envfile)
-      pkgsDir: "pkgs", // Optional (default is "pkgs")
-      aliasPkgDir: true, // Optional (default is true)
-      autoInstallWasmPack: true, // Optional
+	plugins: [
+		pluginWasmPack({
+			crates: [
+				{
+					path: "crate1",
+					target: "web",
+					liveReload: false, // Optional if false disable liveReload (defaults to true).
+				},
+				{
+					path: "crate2",
+					target: "web",
+					profileOnDev: "profiling",
+					profileOnProd: "release",
+				},
+				{
+					path: "crate3",
+					target: "web",
+					features: ["serde"], // Optional (defaults to none)
+					defaultFeatures: false, // Optional (defaults to true)
+				},
+			],
+			wasmpackPath: "~/.cargo/bin/wasm-pack", // Optional (this can be loaded from envfile)
+			pkgsDir: "pkgs", // Optional (default is "pkgs")
+			aliasPkgDir: true, // Optional (default is true)
+			autoInstallWasmPack: true, // Optional
 
-      // Optional Rust auto-install setup
-      autoInstallRust: true,
-      rustToolchainOptions: {
-        defaultToolchain: "stable",
-        profile: "minimal",
-        components: ["clippy"],
-        targets: ["wasm32-unknown-unknown"],
-      },
-    }),
-  ],
+			// Optional Rust auto-install setup
+			autoInstallRust: true,
+			rustToolchainOptions: {
+				defaultToolchain: "stable",
+				profile: "minimal",
+				components: ["clippy"],
+				targets: ["wasm32-unknown-unknown"],
+			},
+		}),
+	],
 });
 ```
 
@@ -151,11 +151,11 @@ import initializeRust2 from "@pkgs/rust2";
 // If disabled, you must import from the actual relative path (e.g., "../pkgs/rust1").
 
 initializeRust1().then((rust1) => {
-  rust1.greet("World1");
+	rust1.greet("World1");
 });
 
 initializeRust2().then((rust2) => {
-  rust2.greet("World2");
+	rust2.greet("World2");
 });
 ```
 
@@ -208,11 +208,11 @@ If enabled (`true` by default), the plugin will:
 
 ```json
 {
-  "compilerOptions": {
-    "paths": {
-      "@pkgs/*": ["./pkgs/*"]
-    }
-  }
+	"compilerOptions": {
+		"paths": {
+			"@pkgs/*": ["./pkgs/*"]
+		}
+	}
 }
 ```
 
